@@ -1,42 +1,47 @@
-# Apps Script deploy (form → Google Sheet)
+# Apps Script deploy (Calixlab Trainer Hub)
 
-Submissions are routed in **`Config.gs`**. Production spreadsheet:
+Submissions are routed in **`Config.gs`**.
 
-- **ID:** `1rRQp0WWIBpnZfZQhXZCHp7RnxF5J9tBsA59cXkr9nv8`
-- **Tab:** `PRODUCTION_SHEET_NAME` (default `Sheet1`)
+| Target | Spreadsheet | Tabs |
+|--------|-------------|------|
+| Production | `1rRQp0WWIBpnZfZQhXZCHp7RnxF5J9tBsA59cXkr9nv8` | **Client**, **Trainer**, **Session Log** |
 
 ```javascript
 const ACTIVE_TARGET = 'production';
+const RECEIPTS_FOLDER_ID = '1GcB2_GwLoE9cosyJPyoIOL5WCjUBZBt5';
 ```
+
+Drive uploads use subfolders under that parent (created on first upload):
+
+- `onboarding-receipts`
+- `onboarding-signatures`
+- `payment-receipts`
+- `session-signatures`
 
 ## GitHub Pages (required for forms)
 
-GitHub Pages is static only — **`google.script.run` does not work there**. This repo uses **`fetch`** to your deployed Apps Script `/exec` URL instead.
+GitHub Pages is static only — **`google.script.run` does not work there**. This repo uses **`fetch`** to your deployed Apps Script `/exec` URL.
 
-1. Complete steps 2–3 below (deploy the web app).
+1. Deploy the web app (steps below).
 2. Copy the deployment URL ending in **`/exec`**.
-3. Edit **`config.js`** in the repo root:
+3. Set **`config.js`** in the repo root:
 
    ```javascript
    window.CALIXLAB_GAS_EXEC_URL = 'https://script.google.com/macros/s/…/exec';
    ```
 
-4. Commit and push. Open `https://ixcess.github.io/calibxlab-app/` and test onboarding.
+4. Commit and push. Hard-refresh [https://ixcess.github.io/calibxlab-app/](https://ixcess.github.io/calibxlab-app/).
 
-**Session Log** (clipboard row) works without Apps Script. **Onboarding** and **Record payment** need the URL above.
+**Session Log**, **Onboarding**, **Record payment**, and **Trainer** CRUD all need the URL above.
 
-## 1. Sheet tab
-
-Ensure the production spreadsheet has a tab matching `PRODUCTION_SHEET_NAME` in `Config.gs` (or the first sheet is used as fallback). Header row is created on first submit if empty.
-
-## 2. Install in Apps Script
+## Install / update Apps Script
 
 **Option A — bound project**
 
 1. Open the spreadsheet → **Extensions** → **Apps Script**.
-2. Add/replace `Config.gs` and `Code.gs` from this folder (`doPost` / `doGet` JSON API for GitHub Pages).
-3. **Deploy** → **New deployment** → **Web app** → execute as **Me**, who has access: **Anyone** (or your org).
-4. Copy the **Web app URL** (`…/exec`). You do **not** need to paste `index.html` into Apps Script for GitHub Pages hosting.
+2. Replace `Config.gs`, `Code.gs`, and `appsscript.json` from this folder.
+3. **Deploy** → **Manage deployments** → **Edit** (pencil) → **New version** → **Deploy**.
+4. Re-authorize when prompted (Spreadsheets + Drive scopes).
 
 **Option B — clasp**
 
@@ -46,14 +51,36 @@ clasp push
 clasp deploy
 ```
 
-## 3. Verify
+> Old deployment URLs keep old code until you create a **new version** on the existing deployment.
 
-1. Set `config.js` with the `/exec` URL and reload the site.
-2. **Onboarding** → register a test client → new row on the sheet.
-3. **Record payment** → updates the `Additional Payments` column.
+## API actions (GitHub Pages `gas-client.js`)
 
-Optional: run `testOnboardRandom()` in the Apps Script editor to verify sheet writes without the UI.
+| Action | Method | Notes |
+|--------|--------|--------|
+| `lookupClient` | GET | Query `q` |
+| `listTrainers` | GET | |
+| `onboardClient` | POST | Receipt + waiver signature → Drive |
+| `recordPayment` | POST | Receipt → Drive |
+| `recordSessionLog` | POST | Session signature → Drive |
+| `generateInvoice` | POST | PDF invoice → Drive `invoices/` subfolder |
+| `previewInvoiceHtml` | POST | HTML preview only |
+| `addTrainer` / `deleteTrainer` | POST | |
+
+## Invoices
+
+- Editable UI: `invoice/index.html` on GitHub Pages.
+- Reference PDF: `apps-script/CL-INV-00160.pdf`.
+- After onboarding/payment success, use **Download invoice PDF** on the hub.
+
+## Verify
+
+1. `listTrainers` — trainer dropdown populates on the site.
+2. **Onboarding** — row on **Client**; files in Drive subfolders.
+3. **Session Log** — row on **Session Log**; signature in `session-signatures`.
+4. **lookupClient** — sessions remaining = package sessions − Session Log count.
+
+See **`PRODUCTION_CHECKLIST.md`** in the repo root.
 
 ## Local preview
 
-Without a real URL in `config.js`, the app uses **local test mode** (localStorage, no Sheets). Session Log still works.
+Without a valid URL in `config.js`, the app uses **local test mode** (localStorage). Session Log still validates UI but does not hit Sheets/Drive.

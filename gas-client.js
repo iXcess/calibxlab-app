@@ -67,7 +67,7 @@
       }
     };
 
-    ['lookupClient', 'listTrainers', 'addTrainer', 'deleteTrainer', 'onboardClient', 'recordPayment', 'recordSessionLog'].forEach(function (action) {
+    ['lookupClient', 'listTrainers', 'addTrainer', 'deleteTrainer', 'onboardClient', 'recordPayment', 'recordSessionLog', 'generateInvoice', 'previewInvoiceHtml'].forEach(function (action) {
       runner[action] = function (arg) {
         callGas(action, arg)
           .then(function (result) {

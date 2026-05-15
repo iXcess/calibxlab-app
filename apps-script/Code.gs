@@ -19,6 +19,8 @@ function runApiAction_(action, payload) {
   if (action === 'onboardClient') return onboardClient(payload || {});
   if (action === 'recordPayment') return recordPayment(payload || {});
   if (action === 'recordSessionLog') return recordSessionLog(payload || {});
+  if (action === 'generateInvoice') return generateInvoice(payload || {});
+  if (action === 'previewInvoiceHtml') return previewInvoiceHtml(payload || {});
   throw new Error('Unknown action: ' + action);
 }
 
@@ -178,7 +180,7 @@ function deleteTrainer(payload) {
 var SESSION_LOG_HEADERS = [
   'Timestamp', 'Session Date', 'Trainer', 'Client', 'Session Type',
   'Lead Source', 'Lead Multiplier', 'Session Number', 'Client Confirmed',
-  'Client Sheet Row', 'Package Info'
+  'Client Sheet Row', 'Package Info', 'Signature File'
 ];
 
 function getSessionLogSheet_() {
@@ -195,12 +197,28 @@ function ensureSessionLogHeaderRow_(sheet) {
     sheet.getRange(1, 1, 1, SESSION_LOG_HEADERS.length).setValues([SESSION_LOG_HEADERS]);
     sheet.getRange(1, 1, 1, SESSION_LOG_HEADERS.length).setFontWeight('bold');
     sheet.setFrozenRows(1);
+    return;
+  }
+  var lastCol = sheet.getLastColumn();
+  if (lastCol < SESSION_LOG_HEADERS.length) {
+    sheet.getRange(1, lastCol + 1, 1, SESSION_LOG_HEADERS.length).setValues([
+      SESSION_LOG_HEADERS.slice(lastCol)
+    ]);
+    sheet.getRange(1, 1, 1, SESSION_LOG_HEADERS.length).setFontWeight('bold');
   }
 }
 
 function recordSessionLog(data) {
   var sheet = getSessionLogSheet_();
   ensureSessionLogHeaderRow_(sheet);
+  var sigName = '';
+  if (RECEIPTS_FOLDER_ID && data.signatureBase64) {
+    var sigFile = (data.signatureFileName || (sanitizeFileStem_(data.client) + '-session-signature.jpg'));
+    sigName = saveBase64File_(
+      data.signatureBase64, sigFile, data.signatureMimeType || 'image/jpeg',
+      (data.client || 'Client') + ' session signature', FOLDER_SESSION_SIGNATURES
+    );
+  }
   var row = [
     new Date(),
     data.sessionDate || '',
@@ -212,10 +230,11 @@ function recordSessionLog(data) {
     parseInt(data.sessionNumber, 10) || data.sessionNumber || '',
     data.clientConfirmed ? 'Yes' : 'No',
     data.clientSheetRow || '',
-    data.packageInfo || ''
+    data.packageInfo || '',
+    sigName
   ];
   sheet.appendRow(row);
-  return { rowIndex: sheet.getLastRow() };
+  return { rowIndex: sheet.getLastRow(), signatureFile: sigName };
 }
 
 // ── Column headers (row 1) — must match your new sheet ─────────────────────
@@ -252,7 +271,7 @@ function rowToClient_(row, rowIndex) {
   var outstanding = Math.max(0, totalValue - amountPaid - additional.reduce(function (s, p) {
     return s + (parseFloat(p.amount) || 0);
   }, 0));
-  var sessionsUsed = additional.filter(function (p) { return p.type === 'session'; }).length;
+  var sessionsUsed = countSessionsLogged_(row[1], rowIndex);
   var sessionsRemaining = Math.max(0, sessions - sessionsUsed);
 
   return {
@@ -323,6 +342,27 @@ function buildSchedule_(row, additional) {
   return schedule;
 }
 
+/** Count Session Log rows for this client (by sheet row index, else name). */
+function countSessionsLogged_(clientName, clientSheetRow) {
+  var sheet = getSessionLogSheet_();
+  if (sheet.getLastRow() < 2) return 0;
+  var data = sheet.getDataRange().getValues();
+  var nameKey = String(clientName || '').trim().toLowerCase();
+  var rowKey = parseInt(clientSheetRow, 10);
+  var useRow = !isNaN(rowKey) && rowKey >= 2;
+  var count = 0;
+  for (var r = 1; r < data.length; r++) {
+    if (useRow) {
+      var loggedRow = parseInt(data[r][9], 10);
+      if (loggedRow === rowKey) count++;
+    } else if (nameKey) {
+      var loggedName = String(data[r][3] || '').trim().toLowerCase();
+      if (loggedName === nameKey) count++;
+    }
+  }
+  return count;
+}
+
 function lookupClient(query) {
   var sheet = getClientSheet_();
   var data = sheet.getDataRange().getValues();
@@ -346,11 +386,17 @@ function onboardClient(data) {
   var receiptName = '';
   var sigName = '';
   if (RECEIPTS_FOLDER_ID && data.receiptBase64) {
-    receiptName = saveBase64File_(data.receiptBase64, data.receiptFileName, data.receiptMimeType, data.fullName + ' receipt');
+    receiptName = saveBase64File_(
+      data.receiptBase64, data.receiptFileName, data.receiptMimeType,
+      data.fullName + ' receipt', FOLDER_ONBOARDING_RECEIPTS
+    );
     folderUrl = 'https://drive.google.com/drive/folders/' + RECEIPTS_FOLDER_ID;
   }
   if (RECEIPTS_FOLDER_ID && data.signatureBase64) {
-    sigName = saveBase64File_(data.signatureBase64, data.fullName + '-signature.png', 'image/png', data.fullName + ' waiver signature');
+    sigName = saveBase64File_(
+      data.signatureBase64, data.fullName + '-signature.jpg', data.signatureMimeType || 'image/jpeg',
+      data.fullName + ' waiver signature', FOLDER_ONBOARDING_SIGNATURES
+    );
   }
   var row = [
     new Date(),
@@ -390,7 +436,7 @@ function recordPayment(data) {
   if (data.receiptBase64 && RECEIPTS_FOLDER_ID) {
     entry.receiptFile = saveBase64File_(
       data.receiptBase64, data.receiptFileName, data.receiptMimeType,
-      data.clientName + ' payment ' + data.paymentDate
+      data.clientName + ' payment ' + data.paymentDate, FOLDER_PAYMENT_RECEIPTS
     );
   }
   additional.push(entry);
@@ -401,10 +447,29 @@ function recordPayment(data) {
   return { folderUrl: folderUrl };
 }
 
-function saveBase64File_(base64, fileName, mimeType, description) {
+function sanitizeFileStem_(name) {
+  return String(name || 'client').replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').slice(0, 60) || 'client';
+}
+
+function getUploadSubfolder_(subfolderName) {
+  var parent = DriveApp.getFolderById(RECEIPTS_FOLDER_ID);
+  var it = parent.getFoldersByName(subfolderName);
+  if (it.hasNext()) return it.next();
+  return parent.createFolder(subfolderName);
+}
+
+function saveBase64File_(base64, fileName, mimeType, description, subfolderName) {
   if (!RECEIPTS_FOLDER_ID) return '';
-  var blob = Utilities.newBlob(Utilities.base64Decode(base64), mimeType || 'application/octet-stream', fileName || 'upload');
-  var file = DriveApp.getFolderById(RECEIPTS_FOLDER_ID).createFile(blob);
+  var raw = String(base64 || '');
+  var comma = raw.indexOf(',');
+  if (comma >= 0) raw = raw.slice(comma + 1);
+  var blob = Utilities.newBlob(
+    Utilities.base64Decode(raw),
+    mimeType || 'application/octet-stream',
+    fileName || 'upload'
+  );
+  var folder = subfolderName ? getUploadSubfolder_(subfolderName) : DriveApp.getFolderById(RECEIPTS_FOLDER_ID);
+  var file = folder.createFile(blob);
   file.setDescription(description || '');
   return file.getName();
 }

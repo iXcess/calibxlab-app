@@ -93,6 +93,141 @@ body.app-body {
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
 }
 .calix-tab:focus-visible { outline: 2px solid #7ab8f5; outline-offset: 2px; }
+.calix-appbar-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; max-width: 560px; margin: 0 auto 8px;
+}
+.calix-appbar-brand {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  text-decoration: none; color: inherit;
+}
+.calix-appbar-mark {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: #fff; padding: 4px; object-fit: contain;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.calix-appbar-wordmark {
+  height: 22px; width: auto; display: none;
+  filter: brightness(0) invert(1); opacity: .95;
+}
+@media (min-width: 400px) {
+  .calix-appbar-wordmark { display: block; }
+}
+.calix-appbar .calix-appbar-inner { flex: 1; margin: 0; }
+/* Shared brand images (usable inside scoped panels) */
+.calix-logo-full { max-width: min(280px, 92vw); height: auto; display: block; margin: 0 auto; }
+.calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
+.calix-logo-hdr {
+  height: 40px; width: auto; display: block;
+}
+.hdr-logo-wrap {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; border-radius: 12px; padding: 8px 14px; margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+}
+.brand-success-logo {
+  width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px; display: block;
+}
+.brand-success-wrap {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: #fff; border: 2px solid #B5D4F4;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; padding: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+/* Invoice download sheet (after onboarding / payment) */
+.invoice-modal {
+  position: fixed; inset: 0; z-index: 5000;
+  display: flex; align-items: flex-end; justify-content: center;
+  pointer-events: none; opacity: 0; visibility: hidden;
+  transition: opacity .2s, visibility .2s;
+}
+.invoice-modal.open { pointer-events: auto; opacity: 1; visibility: visible; }
+.invoice-modal-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(14, 28, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+.invoice-modal-sheet {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 480px;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 40px rgba(14, 28, 42, 0.2);
+  text-align: center;
+  transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.32, .72, .24, 1);
+}
+.invoice-modal.open .invoice-modal-sheet { transform: translateY(0); }
+.invoice-modal-logo {
+  width: 56px; height: 56px; object-fit: contain;
+  margin: 0 auto 12px; display: block;
+}
+.invoice-modal-sheet h2 {
+  font-size: 20px; font-weight: 700; color: #1a3c5e; margin: 0 0 8px;
+}
+.invoice-modal-sheet p {
+  font-size: 14px; line-height: 1.5; color: #3d5166; margin: 0 0 16px;
+}
+.invoice-modal-loading {
+  font-size: 14px; color: #8098ae; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.invoice-modal-loading::before {
+  content: ''; width: 22px; height: 22px;
+  border: 3px solid #e8f0f8; border-top-color: #1a3c5e;
+  border-radius: 50%; animation: invSpin .7s linear infinite;
+}
+@keyframes invSpin { to { transform: rotate(360deg); } }
+.invoice-modal-download {
+  display: block; width: 100%;
+  padding: 16px 20px; margin-bottom: 10px;
+  border: none; border-radius: 14px;
+  font: 700 16px/1.2 'DM Sans', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0e6b44, #1a3c5e);
+  color: #fff; cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 4px 14px rgba(14, 107, 68, 0.35);
+}
+.invoice-modal-download:disabled {
+  background: #b0c4d8; box-shadow: none; cursor: not-allowed;
+}
+.invoice-modal-secondary {
+  display: block; width: 100%; padding: 12px;
+  border: none; background: transparent;
+  font: 600 14px 'DM Sans', system-ui, sans-serif;
+  color: #3d5166; cursor: pointer;
+}
+.invoice-modal-close {
+  position: absolute; top: 12px; right: 14px;
+  width: 36px; height: 36px; border: none; border-radius: 50%;
+  background: #f0f4f8; color: #3d5166; font-size: 20px; cursor: pointer;
+}
+"""
+
+INVOICE_MODAL_HTML = """
+<div id="invoiceModal" class="invoice-modal" aria-hidden="true" role="dialog" aria-labelledby="invoiceModalTitle">
+  <div class="invoice-modal-backdrop" id="invoiceModalBackdrop"></div>
+  <div class="invoice-modal-sheet">
+    <button type="button" class="invoice-modal-close" id="invoiceModalClose" aria-label="Close">×</button>
+    <img class="invoice-modal-logo" src="assets/calixlab-mark.png" alt="" width="56" height="56"/>
+    <h2 id="invoiceModalTitle">Invoice ready</h2>
+    <p id="invoiceModalSub">Preparing your PDF…</p>
+    <div class="invoice-modal-loading" id="invoiceModalLoading">Preparing your invoice…</div>
+    <button type="button" class="invoice-modal-download" id="invoiceModalDownload" disabled>Download invoice PDF</button>
+    <button type="button" class="invoice-modal-secondary" id="invoiceModalLater">Done for now</button>
+  </div>
+</div>
+"""
+
+FAVICON_HEAD = """
+<link rel="icon" href="assets/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png"/>
+<link rel="manifest" href="site.webmanifest"/>
+<meta name="theme-color" content="#1a3c5e"/>
 """
 
 GAS_SCRIPTS = """
@@ -100,6 +235,7 @@ GAS_SCRIPTS = """
 <script src="config.js"></script>
 <script src="gas-client.js"></script>
 <script src="trainers.js"></script>
+<script src="invoice-actions.js"></script>
 """
 
 STUB_JS = """
@@ -201,6 +337,18 @@ STUB_JS = """
         saveLog({ type: 'session', at: new Date().toISOString(), data: data });
         self._ok({ rowIndex: 2, local: true });
       }, 200);
+    },
+    generateInvoice: function () {
+      var self = this;
+      setTimeout(function () {
+        self._ok({ invoiceNumber: 'CL-INV-LOCAL', pdfBase64: '', local: true });
+      }, 200);
+    },
+    previewInvoiceHtml: function () {
+      var self = this;
+      setTimeout(function () {
+        self._ok({ invoiceNumber: 'CL-INV-LOCAL', html: '<p>Local preview — configure Apps Script for full invoice.</p>', local: true });
+      }, 200);
     }
   };
   window.google = { script: { run: run } };
@@ -241,7 +389,8 @@ out = f"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>Calixlab — Trainer Hub</title>
+<title>Cali Lab — Trainer Hub</title>
+{FAVICON_HEAD}
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 {APP_SHELL_CSS}
@@ -256,9 +405,15 @@ out = f"""<!DOCTYPE html>
 <body class="app-body">
 
 <header class="calix-appbar" role="navigation" aria-label="Main">
-  <div class="calix-appbar-inner">
-    <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
-    <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
+  <div class="calix-appbar-row">
+    <div class="calix-appbar-brand" aria-hidden="true">
+      <img class="calix-appbar-mark" src="assets/calixlab-mark.png" alt="" width="36" height="36"/>
+      <img class="calix-appbar-wordmark" src="assets/calixlab-logo-header.png" alt="Cali Lab" height="22"/>
+    </div>
+    <div class="calix-appbar-inner">
+      <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
+      <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
+    </div>
   </div>
 </header>
 

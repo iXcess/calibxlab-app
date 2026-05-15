@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>Calixlab — Trainer Hub</title>
+<title>Cali Lab — Trainer Hub</title>
+
+<link rel="icon" href="assets/favicon.ico" sizes="any"/>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png"/>
+<link rel="manifest" href="site.webmanifest"/>
+<meta name="theme-color" content="#1a3c5e"/>
+
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 
@@ -41,6 +49,117 @@ body.app-body {
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
 }
 .calix-tab:focus-visible { outline: 2px solid #7ab8f5; outline-offset: 2px; }
+.calix-appbar-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; max-width: 560px; margin: 0 auto 8px;
+}
+.calix-appbar-brand {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  text-decoration: none; color: inherit;
+}
+.calix-appbar-mark {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: #fff; padding: 4px; object-fit: contain;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+.calix-appbar-wordmark {
+  height: 22px; width: auto; display: none;
+  filter: brightness(0) invert(1); opacity: .95;
+}
+@media (min-width: 400px) {
+  .calix-appbar-wordmark { display: block; }
+}
+.calix-appbar .calix-appbar-inner { flex: 1; margin: 0; }
+/* Shared brand images (usable inside scoped panels) */
+.calix-logo-full { max-width: min(280px, 92vw); height: auto; display: block; margin: 0 auto; }
+.calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
+.calix-logo-hdr {
+  height: 40px; width: auto; display: block;
+}
+.hdr-logo-wrap {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; border-radius: 12px; padding: 8px 14px; margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+}
+.brand-success-logo {
+  width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px; display: block;
+}
+.brand-success-wrap {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: #fff; border: 2px solid #B5D4F4;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; padding: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+/* Invoice download sheet (after onboarding / payment) */
+.invoice-modal {
+  position: fixed; inset: 0; z-index: 5000;
+  display: flex; align-items: flex-end; justify-content: center;
+  pointer-events: none; opacity: 0; visibility: hidden;
+  transition: opacity .2s, visibility .2s;
+}
+.invoice-modal.open { pointer-events: auto; opacity: 1; visibility: visible; }
+.invoice-modal-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(14, 28, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+.invoice-modal-sheet {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 480px;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 40px rgba(14, 28, 42, 0.2);
+  text-align: center;
+  transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.32, .72, .24, 1);
+}
+.invoice-modal.open .invoice-modal-sheet { transform: translateY(0); }
+.invoice-modal-logo {
+  width: 56px; height: 56px; object-fit: contain;
+  margin: 0 auto 12px; display: block;
+}
+.invoice-modal-sheet h2 {
+  font-size: 20px; font-weight: 700; color: #1a3c5e; margin: 0 0 8px;
+}
+.invoice-modal-sheet p {
+  font-size: 14px; line-height: 1.5; color: #3d5166; margin: 0 0 16px;
+}
+.invoice-modal-loading {
+  font-size: 14px; color: #8098ae; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.invoice-modal-loading::before {
+  content: ''; width: 22px; height: 22px;
+  border: 3px solid #e8f0f8; border-top-color: #1a3c5e;
+  border-radius: 50%; animation: invSpin .7s linear infinite;
+}
+@keyframes invSpin { to { transform: rotate(360deg); } }
+.invoice-modal-download {
+  display: block; width: 100%;
+  padding: 16px 20px; margin-bottom: 10px;
+  border: none; border-radius: 14px;
+  font: 700 16px/1.2 'DM Sans', system-ui, sans-serif;
+  background: linear-gradient(135deg, #0e6b44, #1a3c5e);
+  color: #fff; cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 4px 14px rgba(14, 107, 68, 0.35);
+}
+.invoice-modal-download:disabled {
+  background: #b0c4d8; box-shadow: none; cursor: not-allowed;
+}
+.invoice-modal-secondary {
+  display: block; width: 100%; padding: 12px;
+  border: none; background: transparent;
+  font: 600 14px 'DM Sans', system-ui, sans-serif;
+  color: #3d5166; cursor: pointer;
+}
+.invoice-modal-close {
+  position: absolute; top: 12px; right: 14px;
+  width: 36px; height: 36px; border: none; border-radius: 50%;
+  background: #f0f4f8; color: #3d5166; font-size: 20px; cursor: pointer;
+}
 
 </style>
 <style>
@@ -81,6 +200,8 @@ body.app-body {
   background-size:24px 24px;
 }
 .hdr-inner { position:relative; z-index:1; }
+.hdr-logo-wrap { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:12px; padding:8px 14px; margin-bottom:14px; box-shadow:0 2px 12px rgba(0,0,0,.12); }
+.hdr-logo-wrap .calix-logo-hdr { height:40px; width:auto; display:block; }
 .hdr-brand { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:10px; }
 .hdr-title { font-size:28px; font-weight:700; color:#fff; letter-spacing:-.5px; line-height:1.15; margin-bottom:6px; }
 .hdr-title span { color:#7ab8f5; }
@@ -274,7 +395,8 @@ canvas    { display:block; width:100%; height:130px; touch-action:none; cursor:c
 /* ── SUCCESS ───────────────────────────────────── */
 .success { display:none; padding:44px 20px; text-align:center; max-width:480px; margin:0 auto; }
 .success.on { display:block; }
-.s-ring { width:84px; height:84px; border-radius:50%; background:var(--green-lt); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 22px; animation:pop .4s cubic-bezier(.34,1.56,.64,1); }
+.s-ring { width:88px; height:88px; border-radius:50%; background:#fff; border:2px solid var(--green); display:flex; align-items:center; justify-content:center; margin:0 auto 22px; padding:10px; animation:pop .4s cubic-bezier(.34,1.56,.64,1); box-shadow:0 2px 10px rgba(14,28,42,.08); }
+.s-ring img { width:100%; height:100%; object-fit:contain; }
 @keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
 .s-title { font-size:26px; font-weight:700; color:var(--ink); margin-bottom:8px; letter-spacing:-.5px; }
 .s-sub   { font-size:14px; color:var(--ink3); line-height:1.6; margin-bottom:28px; }
@@ -308,10 +430,20 @@ canvas    { display:block; width:100%; height:130px; touch-action:none; cursor:c
 /* ── HEADER ── */
 .header { text-align: center; margin-bottom: 24px; }
 .logo {
-  width: 56px; height: 56px; background: #185FA5; border-radius: 16px;
-  display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px;
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
 }
-.logo svg { width: 30px; height: 30px; fill: white; }
+.logo img.calix-logo-full {
+  max-width: min(300px, 94vw); height: auto; display: block;
+}
+.brand-success-wrap {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: #fff; border: 2px solid #B5D4F4;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; padding: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.brand-success-wrap img { width: 100%; height: 100%; object-fit: contain; }
 .header h1 { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1.2; }
 .header p  { font-size: 14px; color: #666; margin-top: 4px; }
 
@@ -682,9 +814,15 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 <body class="app-body">
 
 <header class="calix-appbar" role="navigation" aria-label="Main">
-  <div class="calix-appbar-inner">
-    <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
-    <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
+  <div class="calix-appbar-row">
+    <div class="calix-appbar-brand" aria-hidden="true">
+      <img class="calix-appbar-mark" src="assets/calixlab-mark.png" alt="" width="36" height="36"/>
+      <img class="calix-appbar-wordmark" src="assets/calixlab-logo-header.png" alt="Cali Lab" height="22"/>
+    </div>
+    <div class="calix-appbar-inner">
+      <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
+      <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
+    </div>
   </div>
 </header>
 
@@ -692,7 +830,10 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 <div class="hdr">
   <div class="hdr-dots"></div>
   <div class="hdr-inner">
-    <div class="hdr-brand">Calixlab · Vibefam</div>
+    <div class="hdr-logo-wrap">
+      <img class="calix-logo-hdr" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="200" height="40"/>
+    </div>
+    <div class="hdr-brand">Vibefam · Trainer Hub</div>
     <div class="hdr-title">Session <span>Log</span></div>
     <div class="hdr-sub">Submit immediately after every session.</div>
     <div class="hdr-date" id="hDate">📅 —</div>
@@ -806,7 +947,7 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
     </div>
     <button class="btn-clr" type="button" onclick="clearSign()">🗑  Clear signature</button>
     <div class="cfm-row" id="cfmRow" onclick="toggleCfm()">
-      <input type="checkbox" id="cfmChk" onclick="event.stopPropagation();toggleCfm()" />
+      <input type="checkbox" id="cfmChk" onchange="onCfmChange()" />
       <div class="cfm-txt">
         I, <strong id="cfmName">the client</strong>, confirm I attended this session today.
       </div>
@@ -834,7 +975,7 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 
 <!-- Success -->
 <div class="success" id="successScr">
-  <div class="s-ring">✅</div>
+  <div class="s-ring"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
   <div class="s-title">Session Logged!</div>
   <div class="s-sub">Recorded successfully.<br>Admin will see this in the Master Log.</div>
   <div class="s-summ" id="sSumm"></div>
@@ -925,46 +1066,42 @@ function renderAcResults(q) {
   sync();
 }
 
-function onAcIn() {
-  const q = document.getElementById('clientIn').value.trim();
+function onAcIn(){
+  const q=document.getElementById('clientIn').value.trim();
   clearErr();
-  if (S.clientData && S.clientData.name !== q) {
-    S.clientData = null;
-    S.client = q;
+  // if user retypes, reset
+  if(S.clientData && S.clientData.name!==q){
+    S.clientData=null; S.client=q;
     document.getElementById('clientIn').classList.remove('filled');
     document.getElementById('siPanel').classList.remove('show');
     setLeadBox(null);
-  } else { S.client = q; }
-  if (q.length < 2) { closeDrop(); acRes = []; sync(); return; }
-
-  const dd = document.getElementById('aDrop');
-  dd.innerHTML = '<div class="aempty">🔍 Searching client sheet…</div>';
+  } else { S.client=q; }
+  if(q.length<2){ closeDrop(); sync(); return; }
+  const ql=q.toLowerCase();
+  acRes=[]; /* replaced below via sheet lookup */
+  void ql;
+  acHi=-1;
+  const dd=document.getElementById('aDrop');
+  if(!acRes.length){
+    dd.innerHTML=`<div class="aempty">No match — type full name and continue</div>`;
+  } else {
+    dd.innerHTML=acRes.map((c,i)=>{
+      const left=c.total-c.done;
+      const hl=c.name.replace(new RegExp(`(${esc(q)})`,'gi'),'<mark>$1</mark>');
+      const bc=left<=0?'ab-bad':left<=3?'ab-warn':'ab-ok';
+      const bt=left<=0?'⚠️ Package done':left<=3?`${left} left ⚠️`:`${left} left`;
+      const mult=c.lead==='Calixlab'?'0.6×':'0.7×';
+      return `<div class="aitem" data-i="${i}" onmousedown="pickClient(${i})">
+        <span>${hl}</span>
+        <div class="aitem-right">
+          <span class="alead-badge">${mult} ${c.lead}</span>
+          <span class="abadge ${bc}">${bt}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
   dd.classList.add('open');
-
-  clearTimeout(acTimer);
-  acTimer = setTimeout(function () {
-    if (acCache[q]) {
-      acRes = acCache[q];
-      renderAcResults(q);
-      return;
-    }
-    if (!window.google || !window.google.script || !window.google.script.run) {
-      acRes = [];
-      dd.innerHTML = '<div class="aempty">Client search unavailable — check config.js</div>';
-      return;
-    }
-    google.script.run
-      .withSuccessHandler(function (results) {
-        acRes = (results || []).map(mapSheetRowToSessionClient);
-        acCache[q] = acRes;
-        renderAcResults(q);
-      })
-      .withFailureHandler(function () {
-        acRes = [];
-        dd.innerHTML = '<div class="aempty">Search failed — try again</div>';
-      })
-      .lookupClient(q);
-  }, 300);
+  sync();
 }
 
 function onAcFocus(){
@@ -1126,81 +1263,38 @@ function showE(id,cid){document.getElementById(id).style.display='block';if(cid)
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
 // ── SUBMIT ────────────────────────────────────────
-function showSessionSuccess_(ts, fmtDate, mult) {
-  document.getElementById('mainForm').style.display = 'none';
+function doSubmit(){
+  clearErr(); sync();
+  const t2=document.getElementById('clientIn').value.trim();
+  if(t2) S.client=t2;
+  let ok=true;
+  if(!S.trainer){showE('er1','c1');ok=false;}
+  if(!S.client) {showE('er2','c2');ok=false;}
+  if(!S.date)   {showE('er3','c3');ok=false;}
+  if(!S.type)   {showE('er4','c4');ok=false;}
+  if(!S.lead)   {showE('er5','c5');ok=false;} // pick client from sheet list to auto-fill lead
+  if(!S.no||S.no<1){showE('er6','c6');ok=false;}
+  if(!S.signed||!S.confirmed){document.getElementById('er7').style.display='block';ok=false;}
+  if(!ok){toast('⚠️ Please complete all required fields');window.scrollTo({top:0,behavior:'smooth'});return;}
+
+  const now=new Date(), ts=now.toLocaleString('en-MY');
+  const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'});
+  const mult=S.lead==='Calixlab'?'0.60':'0.70';
+
+  document.getElementById('mainForm').style.display='none';
   document.getElementById('successScr').classList.add('on');
-  const rows = [['Timestamp', ts], ['Trainer', S.trainer], ['Client', S.client],
-    ['Date', fmtDate], ['Session #', S.no], ['Type', S.type],
-    ['Lead', S.lead + ' (' + mult + '×)'], ['Confirmed', '✅ Client signed']];
-  document.getElementById('sSumm').innerHTML = rows.map(function (pair) {
-    return '<div class="s-row"><span class="sk">' + pair[0] + '</span><span class="sv">' + pair[1] + '</span></div>';
-  }).join('');
-  document.getElementById('sSumm').innerHTML = document.getElementById('sSumm').innerHTML
-    .replace(/<div class="s-row"/g, '<div class="s-row"').replace(/<\/div>/g, '</div>');
-  const now = new Date();
-  const row = [ts, fmtDate, S.trainer, S.client, S.type, '—', S.lead, S.no, '—', 'YES',
-    now.getMonth() + 1, now.getFullYear(), '—', '—', '—', '—', '—', '—', '—', mult, '—', '—', '—', 'NO'].join('\t');
-  document.getElementById('copyTxt').textContent = row;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const rows=[['Timestamp',ts],['Trainer',S.trainer],['Client',S.client],
+    ['Date',fmt(S.date)],['Session #',S.no],['Type',S.type],
+    ['Lead',S.lead+' ('+mult+'×)'],['Confirmed','✅ Client signed']];
+  document.getElementById('sSumm').innerHTML=rows.map(([k,v])=>
+    `<div class="s-row"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('');
+
+  const row=[ts,fmt(S.date),S.trainer,S.client,S.type,'—',S.lead,S.no,'—','YES',
+    now.getMonth()+1,now.getFullYear(),'—','—','—','—','—','—','—',mult,'—','—','—','NO'].join('\t');
+  document.getElementById('copyTxt').textContent=row;
+  window.scrollTo({top:0,behavior:'smooth'});
 }
-
-function doSubmit() {
-  clearErr();
-  sync();
-  const t2 = document.getElementById('clientIn').value.trim();
-  if (t2) S.client = t2;
-  let ok = true;
-  if (!S.trainer) { showE('er1', 'c1'); ok = false; }
-  if (!S.client) { showE('er2', 'c2'); ok = false; }
-  if (!S.date) { showE('er3', 'c3'); ok = false; }
-  if (!S.type) { showE('er4', 'c4'); ok = false; }
-  if (!S.lead) { showE('er5', 'c5'); ok = false; }
-  if (!S.no || S.no < 1) { showE('er6', 'c6'); ok = false; }
-  if (!S.signed || !S.confirmed) { document.getElementById('er7').style.display = 'block'; ok = false; }
-  if (!ok) { toast('⚠️ Please complete all required fields'); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-
-  const now = new Date();
-  const ts = now.toLocaleString('en-MY');
-  const fmt = function (d) {
-    return new Date(d + 'T00:00:00').toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
-  const mult = S.lead === 'Calixlab' ? '0.60' : '0.70';
-  const fmtDate = fmt(S.date);
-  const btn = document.querySelector('.btn-sub');
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-
-  const payload = {
-    sessionDate: S.date,
-    trainer: S.trainer,
-    client: S.client,
-    sessionType: S.type,
-    leadSource: S.lead,
-    leadMultiplier: mult,
-    sessionNumber: S.no,
-    clientConfirmed: true,
-    clientSheetRow: (S.clientData && S.clientData.sheetRow) || '',
-    packageInfo: (S.clientData && S.clientData.pkg) || ''
-  };
-
-  if (!window.google || !google.script || !google.script.run) {
-    toast('Saved locally only — backend not configured');
-    showSessionSuccess_(ts, fmtDate, mult);
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit Session →'; }
-    return;
-  }
-
-  google.script.run
-    .withSuccessHandler(function () {
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit Session →'; }
-      showSessionSuccess_(ts, fmtDate, mult);
-    })
-    .withFailureHandler(function (err) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit Session →'; }
-      alert('Could not save session: ' + (err.message || 'Please try again.'));
-    })
-    .recordSessionLog(payload);
-}
-
 function doCopy(){
   navigator.clipboard.writeText(document.getElementById('copyTxt').textContent).then(()=>{
     const b=document.querySelector('.btn-copy');
@@ -1213,9 +1307,9 @@ function doCopy(){
 <div id="onboard-panel" class="active">
 <div class="header">
   <div class="logo">
-    <svg viewBox="0 0 24 24"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="280" height="56"/>
   </div>
-  <h1>Calixlab Empire</h1>
+  <h1>Client Onboarding</h1>
   <p>Client Onboarding &amp; Payment</p>
 </div>
 
@@ -1230,7 +1324,8 @@ function doCopy(){
 <!-- PROGRESS OVERLAY -->
 <div class="progress-overlay" id="progressOverlay">
   <div class="progress-box">
-    <div class="progress-spinner"></div>
+    <img src="assets/calixlab-mark.png" alt="" width="48" height="48" style="margin:0 auto 14px;display:block;object-fit:contain"/>
+    <div class="progress-spinner" style="display:none"></div>
     <p id="progressMsg">Saving…</p>
     <small>Please do not close this page</small>
   </div>
@@ -1672,7 +1767,7 @@ function doCopy(){
 
 <!-- SUCCESS SCREENS -->
 <div class="success-card" id="successCard">
-  <div style="font-size:48px;margin-bottom:12px;">✓</div>
+  <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
   <h2>Registration Complete!</h2>
   <p id="successMsg">Client has been successfully onboarded.</p>
   <p id="driveMsg" style="margin-top:8px;font-size:13px;color:#3B6D11;"></p>
@@ -1680,7 +1775,7 @@ function doCopy(){
 </div>
 
 <div class="success-card" id="rpSuccessCard">
-  <div style="font-size:48px;margin-bottom:12px;">💳</div>
+  <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
   <h2>Payment Recorded!</h2>
   <p id="rpSuccessMsg">Payment has been saved successfully.</p>
   <p id="rpDriveMsg" style="margin-top:8px;font-size:13px;color:#3B6D11;"></p>
@@ -2275,7 +2370,11 @@ function submitForm() {
         document.getElementById('successMsg').textContent = data.fullName + ' has been registered under ' + data.trainerName + '.';
         if (result && result.folderUrl)
           document.getElementById('driveMsg').innerHTML = '📁 Saved to <a href="'+result.folderUrl+'" target="_blank" style="color:#185FA5;">Google Drive</a>';
+        lastRegisteredRowIndex = result && result.rowIndex ? result.rowIndex : null;
         document.getElementById('successCard').classList.add('show');
+        if (window.CalixlabInvoiceModal) {
+          CalixlabInvoiceModal.showAfterSubmit({ type: 'onboarding', row: lastRegisteredRowIndex, clientName: data.fullName });
+        }
       })
       .withFailureHandler(function(err) {
         hideProgress();
@@ -2325,7 +2424,12 @@ function submitRecordPayment() {
       document.getElementById('rpSuccessMsg').textContent = 'Payment of RM ' + amt.toFixed(2) + ' recorded for ' + selectedClientRow.fullName + '.';
       if (result && result.folderUrl)
         document.getElementById('rpDriveMsg').innerHTML = '📁 Receipt saved to <a href="'+result.folderUrl+'" target="_blank" style="color:#185FA5;">Google Drive</a>';
+      lastPaymentRowIndex = selectedClientRow.rowIndex;
+      lastPaymentAmount = amt;
       document.getElementById('rpSuccessCard').classList.add('show');
+      if (window.CalixlabInvoiceModal) {
+        CalixlabInvoiceModal.showAfterSubmit({ type: 'payment', row: lastPaymentRowIndex, paymentAmount: amt, clientName: selectedClientRow.fullName });
+      }
     })
     .withFailureHandler(function(err) {
       hideProgress();
@@ -2408,6 +2512,7 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
 <script src="config.js"></script>
 <script src="gas-client.js"></script>
 <script src="trainers.js"></script>
+<script src="invoice-actions.js"></script>
 
 
 <script>
@@ -2507,6 +2612,18 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
       setTimeout(function () {
         saveLog({ type: 'session', at: new Date().toISOString(), data: data });
         self._ok({ rowIndex: 2, local: true });
+      }, 200);
+    },
+    generateInvoice: function () {
+      var self = this;
+      setTimeout(function () {
+        self._ok({ invoiceNumber: 'CL-INV-LOCAL', pdfBase64: '', local: true });
+      }, 200);
+    },
+    previewInvoiceHtml: function () {
+      var self = this;
+      setTimeout(function () {
+        self._ok({ invoiceNumber: 'CL-INV-LOCAL', html: '<p>Local preview — configure Apps Script for full invoice.</p>', local: true });
       }, 200);
     }
   };

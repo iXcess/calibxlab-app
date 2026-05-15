@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    color: #0e1c2a;
+    background: #fff;
+    padding: 36px 42px;
+  }
+  .inv-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 3px solid #1a3c5e;
+  }
+  .inv-co { flex: 1; }
+  .inv-co h1 {
+    font-size: 13pt;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #1a3c5e;
+    margin-bottom: 8px;
+  }
+  .inv-co p { font-size: 9.5pt; line-height: 1.55; color: #3d5166; }
+  .inv-brand { text-align: right; }
+  .inv-brand img { height: 52px; width: auto; max-width: 220px; }
+  .inv-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 32px;
+    margin-bottom: 26px;
+  }
+  .inv-badge { text-align: right; min-width: 200px; }
+  .inv-badge .lbl {
+    font-size: 22pt;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #1a3c5e;
+  }
+  .inv-badge .num {
+    font-size: 11pt;
+    color: #3d5166;
+    margin-top: 4px;
+    font-family: Consolas, monospace;
+  }
+  .inv-balance {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #1a3c5e 0%, #0e6b44 100%);
+    color: #fff;
+    border-radius: 10px;
+    text-align: center;
+  }
+  .inv-balance .bl { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.14em; opacity: 0.85; }
+  .inv-balance .bv { font-size: 18pt; font-weight: 700; margin-top: 4px; }
+  .inv-dates { font-size: 9.5pt; line-height: 1.7; color: #3d5166; }
+  .inv-dates strong { color: #0e1c2a; font-weight: 600; }
+  .inv-bill h2 {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #8098ae;
+    margin-bottom: 6px;
+  }
+  .inv-bill .name { font-size: 13pt; font-weight: 700; color: #0e1c2a; }
+  .inv-bill .sub { font-size: 9.5pt; color: #3d5166; margin-top: 4px; line-height: 1.5; }
+  table.inv-lines { width: 100%; border-collapse: collapse; margin: 8px 0 20px; }
+  table.inv-lines th {
+    background: #e8f0f8;
+    color: #1a3c5e;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 2px solid #1a3c5e;
+  }
+  table.inv-lines th.r, table.inv-lines td.r { text-align: right; }
+  table.inv-lines td {
+    padding: 12px;
+    border-bottom: 1px solid #d8e3ed;
+    font-size: 10pt;
+    vertical-align: top;
+  }
+  table.inv-lines td.desc { font-weight: 500; }
+  .inv-totals { width: 100%; max-width: 320px; margin-left: auto; font-size: 10pt; }
+  .inv-totals tr td { padding: 6px 0; }
+  .inv-totals tr td:last-child { text-align: right; font-weight: 600; }
+  .inv-totals tr.total td {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #1a3c5e;
+    border-top: 2px solid #1a3c5e;
+    padding-top: 10px;
+  }
+  .inv-totals tr.pay td { color: #0e6b44; }
+  .inv-totals tr.bal td { font-size: 11pt; font-weight: 700; color: #b91c1c; }
+  .inv-foot {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid #d8e3ed;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    font-size: 9pt;
+    line-height: 1.55;
+    color: #3d5166;
+  }
+  .inv-foot h3 {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #1a3c5e;
+    margin-bottom: 8px;
+  }
+  .inv-foot ul { padding-left: 16px; }
+  .inv-foot li { margin-bottom: 4px; }
+  .inv-powered {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 7.5pt;
+    color: #8098ae;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+  <div class="inv-top">
+    <div class="inv-co">
+      <h1><?= companyLegal ?></h1>
+      <? for (var i = 0; i < companyAddress.length; i++) { ?>
+      <p><?= companyAddress[i] ?></p>
+      <? } ?>
+    </div>
+    <div class="inv-brand">
+      <img src="<?= logoDataUri ?>" alt="<?= companyDisplay ?>"/>
+    </div>
+  </div>
+
+  <div class="inv-meta-row">
+    <div class="inv-bill">
+      <h2>Bill To</h2>
+      <div class="name"><?= billName ?></div>
+      <div class="sub"><?= billContact ?></div>
+    </div>
+    <div class="inv-badge">
+      <div class="lbl">INVOICE</div>
+      <div class="num"># <?= invoiceNumber ?></div>
+      <div class="inv-balance">
+        <div class="bl">Balance Due</div>
+        <div class="bv"><?= balanceDue ?></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="inv-dates" style="margin-bottom:20px;">
+    <div><strong>Invoice Date:</strong> <?= invoiceDate ?></div>
+    <div><strong>Due Date:</strong> <?= dueDate ?></div>
+    <div><strong>Terms:</strong> <?= terms ?></div>
+  </div>
+
+  <table class="inv-lines">
+    <thead>
+      <tr>
+        <th style="width:36px;">#</th>
+        <th>Item &amp; Description</th>
+        <th class="r" style="width:56px;">Qty</th>
+        <th class="r" style="width:88px;">Rate</th>
+        <th class="r" style="width:96px;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <? for (var j = 0; j < lineItems.length; j++) {
+           var li = lineItems[j]; ?>
+      <tr>
+        <td><?= li.index ?></td>
+        <td class="desc"><?= li.description ?></td>
+        <td class="r"><?= li.qty ?></td>
+        <td class="r"><?= li.rate ?></td>
+        <td class="r"><?= li.amount ?></td>
+      </tr>
+      <? } ?>
+    </tbody>
+  </table>
+
+  <table class="inv-totals">
+    <tr><td>Sub Total</td><td><?= subTotal ?></td></tr>
+    <tr><td><?= taxNote ?></td><td></td></tr>
+    <tr class="total"><td>Total</td><td><?= total ?></td></tr>
+    <tr class="pay"><td>Payment Made</td><td><?= paymentMade ?></td></tr>
+    <tr class="bal"><td>Balance Due</td><td><?= balanceDue ?></td></tr>
+  </table>
+
+  <div class="inv-foot">
+    <div>
+      <h3>Notes</h3>
+      <p><?= notesHtml ?></p>
+    </div>
+    <div>
+      <h3>Terms &amp; Conditions</h3>
+      <ul>
+        <? for (var k = 0; k < termsList.length; k++) { ?>
+        <li><?= termsList[k] ?></li>
+        <? } ?>
+      </ul>
+    </div>
+  </div>
+  <div class="inv-powered">Cali Lab · Trainer Hub</div>
+</body>
+</html>
