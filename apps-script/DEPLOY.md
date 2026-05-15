@@ -39,7 +39,7 @@ GitHub Pages is static only — **`google.script.run` does not work there**. Thi
 **Option A — bound project**
 
 1. Open the spreadsheet → **Extensions** → **Apps Script**.
-2. Replace `Config.gs`, `Code.gs`, and `appsscript.json` from this folder.
+2. Replace **`Config.gs`**, **`Code.gs`**, **`Invoice.gs`**, **`InvoiceTemplate.html`**, and **`appsscript.json`** from this folder.
 3. **Deploy** → **Manage deployments** → **Edit** (pencil) → **New version** → **Deploy**.
 4. Re-authorize when prompted (Spreadsheets + Drive scopes).
 

@@ -58,9 +58,8 @@ body.app-body {
   text-decoration: none; color: inherit;
 }
 .calix-appbar-mark {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: #fff; padding: 4px; object-fit: contain;
-  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  width: 36px; height: 36px; object-fit: contain;
+  filter: brightness(0) invert(1); opacity: .95;
 }
 .calix-appbar-wordmark {
   height: 22px; width: auto; display: none;
@@ -73,23 +72,22 @@ body.app-body {
 /* Shared brand images (usable inside scoped panels) */
 .calix-logo-full { max-width: min(280px, 92vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
-.calix-logo-hdr {
-  height: 40px; width: auto; display: block;
-}
 .hdr-logo-wrap {
   display: inline-flex; align-items: center; justify-content: center;
-  background: #fff; border-radius: 12px; padding: 8px 14px; margin-bottom: 14px;
-  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  margin-bottom: 14px;
+}
+.hdr-logo-wrap .calix-logo-hdr {
+  height: 40px; width: auto; display: block;
+  filter: brightness(0) invert(1); opacity: .96;
 }
 .brand-success-logo {
   width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px; display: block;
 }
 .brand-success-wrap {
   width: 88px; height: 88px; border-radius: 50%;
-  background: #fff; border: 2px solid #B5D4F4;
+  background: transparent; border: 2px solid #B5D4F4;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 16px; padding: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  margin: 0 auto 16px; padding: 8px;
 }
 /* Invoice download sheet (after onboarding / payment) */
 .invoice-modal {
@@ -200,8 +198,8 @@ body.app-body {
   background-size:24px 24px;
 }
 .hdr-inner { position:relative; z-index:1; }
-.hdr-logo-wrap { display:inline-flex; align-items:center; justify-content:center; background:#fff; border-radius:12px; padding:8px 14px; margin-bottom:14px; box-shadow:0 2px 12px rgba(0,0,0,.12); }
-.hdr-logo-wrap .calix-logo-hdr { height:40px; width:auto; display:block; }
+.hdr-logo-wrap { display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px; }
+.hdr-logo-wrap .calix-logo-hdr { height:40px; width:auto; display:block; filter:brightness(0) invert(1); opacity:.96; }
 .hdr-brand { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:10px; }
 .hdr-title { font-size:28px; font-weight:700; color:#fff; letter-spacing:-.5px; line-height:1.15; margin-bottom:6px; }
 .hdr-title span { color:#7ab8f5; }
@@ -395,7 +393,7 @@ canvas    { display:block; width:100%; height:130px; touch-action:none; cursor:c
 /* ── SUCCESS ───────────────────────────────────── */
 .success { display:none; padding:44px 20px; text-align:center; max-width:480px; margin:0 auto; }
 .success.on { display:block; }
-.s-ring { width:88px; height:88px; border-radius:50%; background:#fff; border:2px solid var(--green); display:flex; align-items:center; justify-content:center; margin:0 auto 22px; padding:10px; animation:pop .4s cubic-bezier(.34,1.56,.64,1); box-shadow:0 2px 10px rgba(14,28,42,.08); }
+.s-ring { width:88px; height:88px; border-radius:50%; background:transparent; border:2px solid var(--green); display:flex; align-items:center; justify-content:center; margin:0 auto 22px; padding:8px; animation:pop .4s cubic-bezier(.34,1.56,.64,1); }
 .s-ring img { width:100%; height:100%; object-fit:contain; }
 @keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
 .s-title { font-size:26px; font-weight:700; color:var(--ink); margin-bottom:8px; letter-spacing:-.5px; }
@@ -438,10 +436,9 @@ canvas    { display:block; width:100%; height:130px; touch-action:none; cursor:c
 }
 .brand-success-wrap {
   width: 88px; height: 88px; border-radius: 50%;
-  background: #fff; border: 2px solid #B5D4F4;
+  background: transparent; border: 2px solid #B5D4F4;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 16px; padding: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  margin: 0 auto 16px; padding: 8px;
 }
 .brand-success-wrap img { width: 100%; height: 100%; object-fit: contain; }
 .header h1 { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1.2; }
@@ -833,7 +830,7 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
     <div class="hdr-logo-wrap">
       <img class="calix-logo-hdr" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="200" height="40"/>
     </div>
-    <div class="hdr-brand">Vibefam · Trainer Hub</div>
+    <div class="hdr-brand">Calixlab · Vibefam</div>
     <div class="hdr-title">Session <span>Log</span></div>
     <div class="hdr-sub">Submit immediately after every session.</div>
     <div class="hdr-date" id="hDate">📅 —</div>
@@ -1263,6 +1260,21 @@ function showE(id,cid){document.getElementById(id).style.display='block';if(cid)
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
 // ── SUBMIT ────────────────────────────────────────
+function showSessionSuccess(ts, fmt, mult) {
+  document.getElementById('mainForm').style.display='none';
+  document.getElementById('successScr').classList.add('on');
+  const rows=[['Timestamp',ts],['Trainer',S.trainer],['Client',S.client],
+    ['Date',fmt(S.date)],['Session #',S.no],['Type',S.type],
+    ['Lead',S.lead+' ('+mult+'×)'],['Confirmed','✅ Client signed']];
+  document.getElementById('sSumm').innerHTML=rows.map(([k,v])=>
+    `<div class="s-row"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('');
+  const now=new Date();
+  const row=[ts,fmt(S.date),S.trainer,S.client,S.type,'—',S.lead,S.no,'—','YES',
+    now.getMonth()+1,now.getFullYear(),'—','—','—','—','—','—','—',mult,'—','—','—','NO'].join('\t');
+  document.getElementById('copyTxt').textContent=row;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 function doSubmit(){
   clearErr(); sync();
   const t2=document.getElementById('clientIn').value.trim();
@@ -1272,7 +1284,7 @@ function doSubmit(){
   if(!S.client) {showE('er2','c2');ok=false;}
   if(!S.date)   {showE('er3','c3');ok=false;}
   if(!S.type)   {showE('er4','c4');ok=false;}
-  if(!S.lead)   {showE('er5','c5');ok=false;} // pick client from sheet list to auto-fill lead
+  if(!S.lead)   {showE('er5','c5');ok=false;}
   if(!S.no||S.no<1){showE('er6','c6');ok=false;}
   if(!S.signed||!S.confirmed){document.getElementById('er7').style.display='block';ok=false;}
   if(!ok){toast('⚠️ Please complete all required fields');window.scrollTo({top:0,behavior:'smooth'});return;}
@@ -1280,20 +1292,40 @@ function doSubmit(){
   const now=new Date(), ts=now.toLocaleString('en-MY');
   const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'});
   const mult=S.lead==='Calixlab'?'0.60':'0.70';
+  const cv=document.getElementById('signCv');
+  const dataUrl=cv.toDataURL('image/jpeg',0.85);
+  const compress=window.calixlabCompressSignatureDataUrl;
+  const sigPromise=compress?compress(dataUrl):Promise.resolve((dataUrl.split(',')[1]||''));
 
-  document.getElementById('mainForm').style.display='none';
-  document.getElementById('successScr').classList.add('on');
+  if(!window.google||!google.script||!google.script.run){
+    toast('Backend not configured — set CALIXLAB_GAS_EXEC_URL');
+    return;
+  }
 
-  const rows=[['Timestamp',ts],['Trainer',S.trainer],['Client',S.client],
-    ['Date',fmt(S.date)],['Session #',S.no],['Type',S.type],
-    ['Lead',S.lead+' ('+mult+'×)'],['Confirmed','✅ Client signed']];
-  document.getElementById('sSumm').innerHTML=rows.map(([k,v])=>
-    `<div class="s-row"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('');
-
-  const row=[ts,fmt(S.date),S.trainer,S.client,S.type,'—',S.lead,S.no,'—','YES',
-    now.getMonth()+1,now.getFullYear(),'—','—','—','—','—','—','—',mult,'—','—','—','NO'].join('\t');
-  document.getElementById('copyTxt').textContent=row;
-  window.scrollTo({top:0,behavior:'smooth'});
+  toast('Saving session…');
+  sigPromise.then(function(sigB64){
+    const payload={
+      sessionDate:S.date,
+      trainer:S.trainer,
+      client:S.client,
+      sessionType:S.type,
+      leadSource:S.lead,
+      leadMultiplier:mult,
+      sessionNumber:S.no,
+      clientConfirmed:true,
+      clientSheetRow:S.clientData?S.clientData.sheetRow:'',
+      packageInfo:S.clientData?S.clientData.pkg:'',
+      signatureBase64:sigB64,
+      signatureMimeType:'image/jpeg',
+      signatureFileName:(S.client||'client').replace(/[^\w\s-]/g,'').trim()+'-session-signature.jpg'
+    };
+    google.script.run
+      .withSuccessHandler(function(){ showSessionSuccess(ts,fmt,mult); })
+      .withFailureHandler(function(err){
+        toast('Error: '+(err&&err.message?err.message:'Submit failed'));
+      })
+      .recordSessionLog(payload);
+  }).catch(function(){ toast('Could not process signature'); });
 }
 function doCopy(){
   navigator.clipboard.writeText(document.getElementById('copyTxt').textContent).then(()=>{

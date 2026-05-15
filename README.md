@@ -44,13 +44,13 @@ Without a valid `CALIXLAB_GAS_EXEC_URL`, the app runs in **local test mode** (lo
 
 ## Brand assets
 
-Logo and favicons live in [`assets/`](assets/). Regenerate from `assets/calixlab-logo.png`:
+Logo and favicons live in [`assets/`](assets/). Regenerate transparent PNGs from the source logo:
 
 ```bash
 python3 scripts/generate_brand_assets.py
 ```
 
-Includes `favicon.ico`, PNG icons (16–512px), `calixlab-mark.png` (icon mark), and `calixlab-logo-header.png` (horizontal wordmark).
+Includes `favicon.ico`, PNG icons (16–512px), `calixlab-mark.png` (icon mark), and `calixlab-logo-header.png` (wordmark, transparent background). White backing is stripped automatically; dark headers use a CSS invert filter for contrast.
 
 ## Invoices
 

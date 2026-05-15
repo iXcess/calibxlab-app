@@ -102,9 +102,8 @@ body.app-body {
   text-decoration: none; color: inherit;
 }
 .calix-appbar-mark {
-  width: 36px; height: 36px; border-radius: 10px;
-  background: #fff; padding: 4px; object-fit: contain;
-  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  width: 36px; height: 36px; object-fit: contain;
+  filter: brightness(0) invert(1); opacity: .95;
 }
 .calix-appbar-wordmark {
   height: 22px; width: auto; display: none;
@@ -117,23 +116,22 @@ body.app-body {
 /* Shared brand images (usable inside scoped panels) */
 .calix-logo-full { max-width: min(280px, 92vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
-.calix-logo-hdr {
-  height: 40px; width: auto; display: block;
-}
 .hdr-logo-wrap {
   display: inline-flex; align-items: center; justify-content: center;
-  background: #fff; border-radius: 12px; padding: 8px 14px; margin-bottom: 14px;
-  box-shadow: 0 2px 12px rgba(0,0,0,.12);
+  margin-bottom: 14px;
+}
+.hdr-logo-wrap .calix-logo-hdr {
+  height: 40px; width: auto; display: block;
+  filter: brightness(0) invert(1); opacity: .96;
 }
 .brand-success-logo {
   width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px; display: block;
 }
 .brand-success-wrap {
   width: 88px; height: 88px; border-radius: 50%;
-  background: #fff; border: 2px solid #B5D4F4;
+  background: transparent; border: 2px solid #B5D4F4;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 16px; padding: 10px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  margin: 0 auto 16px; padding: 8px;
 }
 /* Invoice download sheet (after onboarding / payment) */
 .invoice-modal {
