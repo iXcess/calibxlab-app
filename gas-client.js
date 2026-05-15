@@ -35,6 +35,11 @@
         .then(parseResponse);
     }
 
+    if (action === 'listTrainers') {
+      return fetch(url + '?action=listTrainers', { method: 'GET', mode: 'cors' })
+        .then(parseResponse);
+    }
+
     var json = JSON.stringify(payload == null ? {} : payload);
     if (json.length > MAX_GET_PAYLOAD) {
       return Promise.reject(new Error(
@@ -59,7 +64,7 @@
       }
     };
 
-    ['lookupClient', 'onboardClient', 'recordPayment'].forEach(function (action) {
+    ['lookupClient', 'listTrainers', 'addTrainer', 'deleteTrainer', 'onboardClient', 'recordPayment'].forEach(function (action) {
       runner[action] = function (arg) {
         callGas(action, arg)
           .then(function (result) {

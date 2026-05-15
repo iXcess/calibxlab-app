@@ -716,9 +716,6 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
     <div class="sw">
       <select id="trainerSel" onchange="S.trainer=this.value;sync()">
         <option value="">— Select your name —</option>
-        <option>Kendy</option>
-        <option>Trainer B</option>
-        <option>Trainer C</option>
       </select>
     </div>
     <div class="ferr" id="er1">Please select your name.</div>
@@ -1652,49 +1649,72 @@ function switchMode(mode) {
 }
 
 // ══════════════════════════════════════
-// TRAINERS
+// TRAINERS (Google Sheet tab "Trainer")
 // ══════════════════════════════════════
-var trainers = JSON.parse(localStorage.getItem('ptTrainers') || 'null') || ['Alex','Sarah','Hafiz','Nurul'];
-function saveTrainers() { localStorage.setItem('ptTrainers', JSON.stringify(trainers)); }
-function renderTrainers() {
-  var sel = document.getElementById('trainerSelect');
-  var cur = document.getElementById('trainerNameHidden').value;
-  sel.innerHTML = '<option value="">— Select Trainer —</option>';
-  trainers.forEach(function(t) {
-    var o = document.createElement('option');
-    o.value = t; o.textContent = t;
-    if (t === cur) o.selected = true;
-    sel.appendChild(o);
-  });
+var trainers = [];
+window.calixlabOnTrainersLoaded = function (names) {
+  trainers = names || [];
   renderDeleteList();
+};
+function renderTrainers() {
+  var cur = document.getElementById('trainerNameHidden').value;
+  if (typeof calixlabRefreshTrainerDropdowns === 'function') {
+    calixlabRefreshTrainerDropdowns().then(function () {
+      if (cur) document.getElementById('trainerSelect').value = cur;
+    });
+  }
 }
 function renderDeleteList() {
   var list = document.getElementById('trainerDeleteList');
+  if (!list) return;
   list.innerHTML = '';
-  trainers.forEach(function(t) {
+  trainers.forEach(function (t) {
     var row = document.createElement('div');
     row.className = 'trainer-delete-row';
-    row.innerHTML = '<span>' + t + '</span><button onclick="deleteTrainer(\'' + t.replace(/'/g,"\\'") + '\')">Remove</button>';
+    row.innerHTML = '<span>' + t + '</span><button type="button" onclick="deleteTrainer(\'' + t.replace(/'/g, "\\'") + '\')">Remove</button>';
     list.appendChild(row);
   });
 }
 function confirmAddTrainer() {
   var n = document.getElementById('newTrainerName').value.trim();
   if (!n) { alert('Please enter a trainer name.'); return; }
-  if (trainers.includes(n)) { alert(n + ' already exists.'); return; }
-  trainers.push(n); saveTrainers(); renderTrainers();
-  document.getElementById('trainerSelect').value = n;
-  document.getElementById('trainerNameHidden').value = n;
-  document.getElementById('newTrainerName').value = '';
-  closePanel('addTrainerPanel');
+  if (!window.google || !google.script || !google.script.run) {
+    alert('Cannot add trainer — backend not configured.');
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function () {
+      document.getElementById('newTrainerName').value = '';
+      document.getElementById('trainerNameHidden').value = n;
+      closePanel('addTrainerPanel');
+      calixlabRefreshTrainerDropdowns().then(function () {
+        document.getElementById('trainerSelect').value = n;
+      });
+    })
+    .withFailureHandler(function (err) {
+      alert(err.message || 'Could not add trainer.');
+    })
+    .addTrainer({ name: n });
 }
 function deleteTrainer(name) {
-  if (!confirm('Remove "' + name + '"?')) return;
-  trainers = trainers.filter(function(t) { return t !== name; });
-  saveTrainers();
-  if (document.getElementById('trainerNameHidden').value === name) document.getElementById('trainerNameHidden').value = '';
-  renderTrainers();
+  if (!confirm('Remove "' + name + '" from the Trainer sheet?')) return;
+  if (!window.google || !google.script || !google.script.run) {
+    alert('Cannot remove trainer — backend not configured.');
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function () {
+      if (document.getElementById('trainerNameHidden').value === name) {
+        document.getElementById('trainerNameHidden').value = '';
+      }
+      calixlabRefreshTrainerDropdowns();
+    })
+    .withFailureHandler(function (err) {
+      alert(err.message || 'Could not remove trainer.');
+    })
+    .deleteTrainer({ name: name });
 }
+
 function togglePanel(showId, hideId) {
   document.getElementById(hideId).classList.remove('show');
   document.getElementById(showId).classList.toggle('show');
@@ -2301,7 +2321,6 @@ function resetForm(mode) {
 // ══════════════════════════════════════
 // INIT
 // ══════════════════════════════════════
-renderTrainers();
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 var today = new Date().toISOString().split('T')[0];
@@ -2316,6 +2335,7 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
 <script src="image-compress.js"></script>
 <script src="config.js"></script>
 <script src="gas-client.js"></script>
+<script src="trainers.js"></script>
 
 
 <script>
@@ -2327,6 +2347,11 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
   if (window.google && window.google.script && window.google.script.run &&
       window.google.script.run.withSuccessHandler && !runDesc) return;
   var LS_KEY = 'calixlab_local_test_log';
+  var TRAINER_KEY = 'calixlab_trainers';
+  function loadTrainers() {
+    try { return JSON.parse(localStorage.getItem(TRAINER_KEY) || '[]'); } catch (e) { return ['Alex', 'Sarah', 'Hafiz', 'Nurul']; }
+  }
+  function saveTrainersLocal(list) { localStorage.setItem(TRAINER_KEY, JSON.stringify(list)); }
   function loadLog() {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
   }
@@ -2382,6 +2407,28 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
         saveLog({ type: 'payment', at: new Date().toISOString(), data: data });
         self._ok({ folderUrl: '', local: true });
       }, 350);
+    },
+    listTrainers: function () {
+      var self = this;
+      setTimeout(function () { self._ok(loadTrainers()); }, 80);
+    },
+    addTrainer: function (data) {
+      var self = this;
+      setTimeout(function () {
+        var n = (data && data.name) ? String(data.name).trim() : '';
+        var list = loadTrainers();
+        if (n && list.indexOf(n) < 0) list.push(n);
+        saveTrainersLocal(list);
+        self._ok({ ok: true, name: n });
+      }, 80);
+    },
+    deleteTrainer: function (data) {
+      var self = this;
+      setTimeout(function () {
+        var n = (data && data.name) ? String(data.name).trim() : '';
+        saveTrainersLocal(loadTrainers().filter(function (t) { return t !== n; }));
+        self._ok({ ok: true, name: n });
+      }, 80);
     }
   };
   window.google = { script: { run: run } };

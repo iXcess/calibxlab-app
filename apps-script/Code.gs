@@ -13,6 +13,9 @@ function runApiAction_(action, payload) {
   if (action === 'lookupClient') {
     return lookupClient(typeof payload === 'string' ? payload : (payload && payload.q) || '');
   }
+  if (action === 'listTrainers') return listTrainers();
+  if (action === 'addTrainer') return addTrainer(payload || {});
+  if (action === 'deleteTrainer') return deleteTrainer(payload || {});
   if (action === 'onboardClient') return onboardClient(payload || {});
   if (action === 'recordPayment') return recordPayment(payload || {});
   throw new Error('Unknown action: ' + action);
@@ -85,12 +88,89 @@ function getClientSheet_() {
   var name = getActiveSheetName_();
   var sheet = ss.getSheetByName(name);
   if (!sheet && ACTIVE_TARGET === 'production') {
-    sheet = ss.getSheets()[0];
+    sheet = ss.getSheetByName('Client') || ss.getSheets()[0];
   }
   if (!sheet) {
     throw new Error('Sheet not found: "' + name + '". Create this tab or fix PRODUCTION_SHEET_NAME / STAGING_SHEET_NAME in Config.gs.');
   }
   return sheet;
+}
+
+function getTrainerSheet_() {
+  var ss = getSubmissionSpreadsheet_();
+  var sheet = ss.getSheetByName(TRAINER_SHEET_NAME);
+  if (!sheet) {
+    throw new Error('Sheet not found: "' + TRAINER_SHEET_NAME + '". Add a tab named Trainer with names in column A.');
+  }
+  return sheet;
+}
+
+function isTrainerHeader_(val) {
+  var h = String(val || '').trim().toLowerCase();
+  return h === 'trainer' || h === 'name' || h === 'trainer name';
+}
+
+function ensureTrainerSheet_() {
+  var sheet = getTrainerSheet_();
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1).setValue('Trainer').setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+/** One-time seed when Trainer tab has no names (edit/remove in the sheet anytime). */
+function seedDefaultTrainersIfEmpty_() {
+  var sheet = ensureTrainerSheet_();
+  if (sheet.getLastRow() > 1) return;
+  var defaults = ['Alex', 'Sarah', 'Hafiz', 'Nurul', 'Kendy'];
+  defaults.forEach(function (n) { sheet.appendRow([n]); });
+}
+
+function listTrainers() {
+  seedDefaultTrainersIfEmpty_();
+  var sheet = getTrainerSheet_();
+  var data = sheet.getDataRange().getValues();
+  var names = [];
+  for (var r = 0; r < data.length; r++) {
+    var name = String(data[r][0] || '').trim();
+    if (!name) continue;
+    if (r === 0 && isTrainerHeader_(name)) continue;
+    if (names.indexOf(name) === -1) names.push(name);
+  }
+  names.sort(function (a, b) { return a.localeCompare(b, undefined, { sensitivity: 'base' }); });
+  return names;
+}
+
+function trainerNameFromPayload_(payload) {
+  if (typeof payload === 'string') return String(payload).trim();
+  return String((payload && payload.name) || '').trim();
+}
+
+function addTrainer(payload) {
+  var name = trainerNameFromPayload_(payload);
+  if (!name) throw new Error('Trainer name required.');
+  var sheet = ensureTrainerSheet_();
+  var existing = listTrainers();
+  if (existing.indexOf(name) >= 0) throw new Error('Trainer already exists: ' + name);
+  sheet.appendRow([name]);
+  return { ok: true, name: name };
+}
+
+function deleteTrainer(payload) {
+  var name = trainerNameFromPayload_(payload);
+  if (!name) throw new Error('Trainer name required.');
+  var sheet = getTrainerSheet_();
+  var data = sheet.getDataRange().getValues();
+  for (var r = data.length - 1; r >= 0; r--) {
+    var cell = String(data[r][0] || '').trim();
+    if (r === 0 && isTrainerHeader_(cell)) continue;
+    if (cell === name) {
+      sheet.deleteRow(r + 1);
+      return { ok: true, name: name };
+    }
+  }
+  throw new Error('Trainer not found: ' + name);
 }
 
 // ── Column headers (row 1) — must match your new sheet ─────────────────────

@@ -99,6 +99,7 @@ GAS_SCRIPTS = """
 <script src="image-compress.js"></script>
 <script src="config.js"></script>
 <script src="gas-client.js"></script>
+<script src="trainers.js"></script>
 """
 
 STUB_JS = """
@@ -111,6 +112,11 @@ STUB_JS = """
   if (window.google && window.google.script && window.google.script.run &&
       window.google.script.run.withSuccessHandler && !runDesc) return;
   var LS_KEY = 'calixlab_local_test_log';
+  var TRAINER_KEY = 'calixlab_trainers';
+  function loadTrainers() {
+    try { return JSON.parse(localStorage.getItem(TRAINER_KEY) || '[]'); } catch (e) { return ['Alex', 'Sarah', 'Hafiz', 'Nurul']; }
+  }
+  function saveTrainersLocal(list) { localStorage.setItem(TRAINER_KEY, JSON.stringify(list)); }
   function loadLog() {
     try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
   }
@@ -166,6 +172,28 @@ STUB_JS = """
         saveLog({ type: 'payment', at: new Date().toISOString(), data: data });
         self._ok({ folderUrl: '', local: true });
       }, 350);
+    },
+    listTrainers: function () {
+      var self = this;
+      setTimeout(function () { self._ok(loadTrainers()); }, 80);
+    },
+    addTrainer: function (data) {
+      var self = this;
+      setTimeout(function () {
+        var n = (data && data.name) ? String(data.name).trim() : '';
+        var list = loadTrainers();
+        if (n && list.indexOf(n) < 0) list.push(n);
+        saveTrainersLocal(list);
+        self._ok({ ok: true, name: n });
+      }, 80);
+    },
+    deleteTrainer: function (data) {
+      var self = this;
+      setTimeout(function () {
+        var n = (data && data.name) ? String(data.name).trim() : '';
+        saveTrainersLocal(loadTrainers().filter(function (t) { return t !== n; }));
+        self._ok({ ok: true, name: n });
+      }, 80);
     }
   };
   window.google = { script: { run: run } };
