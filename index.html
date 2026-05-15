@@ -63,6 +63,20 @@ body.app-body {
 .payroll-results { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
 .payroll-grand .rp-val { font-size: 22px; }
 .payroll-trainer-card .section-title { margin-bottom: 12px; }
+.onboard-inner-switcher {
+  display: flex; max-width: 560px; width: calc(100% - 32px); margin: 0 auto 16px;
+  background: white; border-radius: 12px; padding: 4px;
+  border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.onboard-inner-switcher .mode-btn {
+  flex: 1; padding: 10px 8px; border: none; border-radius: 9px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  background: transparent; color: #888; transition: all 0.2s;
+}
+.onboard-inner-switcher .mode-btn.active {
+  background: #185FA5; color: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
 
 .header { text-align: center; margin-bottom: 24px; }
 .logo {
@@ -162,6 +176,24 @@ body.app-body {
   width: 36px; height: 36px; border: none; border-radius: 50%;
   background: #f0efe9; color: #666; font-size: 20px; cursor: pointer;
 }
+/* Shared overlays (outside @scope — must be global) */
+.error-banner {
+  display: none; background: #FCEBEB; border: 1.5px solid #E24B4A; color: #791F1F;
+  padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 500;
+  max-width: 560px; margin: 0 auto 14px; text-align: center;
+}
+.error-banner.show { display: block; }
+.progress-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 9999; align-items: center; justify-content: center;
+}
+.progress-overlay.show { display: flex; }
+.progress-box {
+  background: white; border-radius: 16px; padding: 28px 32px; text-align: center; max-width: 300px; width: 90%;
+}
+.progress-box p { font-size: 15px; font-weight: 600; color: #0C447C; margin-bottom: 6px; }
+.progress-box small { font-size: 12px; color: #888; }
+.hidden { display: none !important; }
 
 </style>
 <style>
@@ -422,7 +454,7 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 }
 </style>
 <style>
-@scope (#view-onboarding, #view-payment, #view-trainer, #view-admin) {
+@scope (#view-onboarding, #view-payment, #view-admin) {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :scope {
@@ -830,7 +862,6 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
   <button type="button" class="mode-btn active" id="hubNavOnboarding" onclick="calixSwitchHubView('onboarding')">Onboarding</button>
   <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')">Payment Record</button>
   <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')">Session Log</button>
-  <button type="button" class="mode-btn" id="hubNavTrainer" onclick="calixSwitchHubView('trainer')">Trainer</button>
   <button type="button" class="mode-btn" id="hubNavAdmin" onclick="calixSwitchHubView('admin')">Admin</button>
 </nav>
 <div id="hub-header" class="header">
@@ -841,10 +872,6 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
   <p id="hubSub">New client registration</p>
 </div>
 
-
-<h1>Client Onboarding</h1>
-  <p>Client Onboarding &amp; Payment</p>
-</div>
 
 <div id="error-banner" class="error-banner"></div>
 
@@ -863,6 +890,13 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 ══════════════════════════════════════════ -->
 
 <div id="view-onboarding" class="hub-view active">
+
+<div class="onboard-inner-switcher" role="tablist" aria-label="Onboarding mode">
+  <button type="button" class="mode-btn active" id="onboardNavClient" onclick="calixSwitchOnboardMode('client')">New Client</button>
+  <button type="button" class="mode-btn" id="onboardNavTrainer" onclick="calixSwitchOnboardMode('trainer')">Register Trainer</button>
+</div>
+
+<div id="onboardClientSection">
 <div id="newClientForm">
 
   <!-- 1. PERSONAL INFO -->
@@ -1188,16 +1222,66 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
     <button type="button" class="submit-btn" id="submitBtn" onclick="submitForm()">Register Client</button>
   </div>
 </div>
-
-<!-- ══════════════════════════════════════════
-     RECORD PAYMENT FORM
-══════════════════════════════════════════ -->
 <div class="success-card" id="successCard">
   <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
+  <h2>Registration Complete!</h2>
+  <p id="successMsg">Client has been successfully onboarded.</p>
+  <p id="driveMsg" style="margin-top:8px;font-size:13px;color:#3B6D11;"></p>
+  <button type="button" class="reset-btn" onclick="resetForm('new')">Register Another Client</button>
+</div>
+</div>
+<div id="onboardTrainerSection" class="hidden">
+
+<div class="card">
+  <div class="section-title">
+    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+    Personal Information
+  </div>
+  <div class="field">
+    <label>Full Name <span class="req">*</span></label>
+    <input type="text" id="toFullName" placeholder="As per IC / Passport" autocomplete="name"/>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>Phone Number <span class="req">*</span></label>
+      <input type="tel" id="toPhone" placeholder="01X-XXXXXXX"/>
+    </div>
+    <div class="field">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" id="toEmail" placeholder="email@example.com"/>
+    </div>
+  </div>
+  <div class="field">
+    <label>IC / Passport Number <span class="req">*</span></label>
+    <input type="text" id="toIc" placeholder="XXXXXX-XX-XXXX" inputmode="numeric"/>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>Emergency Contact Name <span class="req">*</span></label>
+      <input type="text" id="toEmergencyContact" placeholder="Full name"/>
+    </div>
+    <div class="field">
+      <label>Emergency Contact Phone <span class="req">*</span></label>
+      <input type="tel" id="toEmergencyPhone" placeholder="01X-XXXXXXX"/>
+    </div>
+  </div>
+  <div class="ferr" id="toFormErr" style="display:none;margin-top:8px;"></div>
+</div>
+<div class="submit-wrap">
+  <button type="button" class="submit-btn" id="toSubmitBtn" onclick="submitTrainerOnboarding()">Register Trainer</button>
+</div>
+<div class="success-card" id="toSuccessCard">
+  <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
+  <h2>Trainer Registered!</h2>
+  <p id="toSuccessMsg">Trainer has been added to the sheet.</p>
+  <button type="button" class="reset-btn" onclick="resetTrainerOnboarding()">Register Another Trainer</button>
+</div>
+
+</div>
 </div>
 
 <div id="view-payment" class="hub-view">
-<div id="recordPayForm" class="hidden">
+<div id="recordPayForm">
   <div class="card">
     <div class="section-title red">
       <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
@@ -1300,6 +1384,11 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 </div>
 <div class="success-card" id="rpSuccessCard">
   <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
+  <h2>Payment Recorded!</h2>
+  <p id="rpSuccessMsg">Payment has been saved successfully.</p>
+  <div id="rpInvoiceMsg" class="success-invoice-msg"></div>
+  <button type="button" class="reset-btn" onclick="resetForm('record')">Record Another Payment</button>
+</div>
 </div>
 
 <div id="session-panel" class="hub-view">
@@ -1809,55 +1898,6 @@ function doCopy(){
   });
 }
 </script>
-</div>
-
-<div id="view-trainer" class="hub-view">
-
-<div class="card">
-  <div class="section-title">
-    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-    Personal Information
-  </div>
-  <div class="field">
-    <label>Full Name <span class="req">*</span></label>
-    <input type="text" id="toFullName" placeholder="As per IC / Passport" autocomplete="name"/>
-  </div>
-  <div class="row2">
-    <div class="field">
-      <label>Phone Number <span class="req">*</span></label>
-      <input type="tel" id="toPhone" placeholder="01X-XXXXXXX"/>
-    </div>
-    <div class="field">
-      <label>Email <span class="req">*</span></label>
-      <input type="email" id="toEmail" placeholder="email@example.com"/>
-    </div>
-  </div>
-  <div class="field">
-    <label>IC / Passport Number <span class="req">*</span></label>
-    <input type="text" id="toIc" placeholder="XXXXXX-XX-XXXX" inputmode="numeric"/>
-  </div>
-  <div class="row2">
-    <div class="field">
-      <label>Emergency Contact Name <span class="req">*</span></label>
-      <input type="text" id="toEmergencyContact" placeholder="Full name"/>
-    </div>
-    <div class="field">
-      <label>Emergency Contact Phone <span class="req">*</span></label>
-      <input type="tel" id="toEmergencyPhone" placeholder="01X-XXXXXXX"/>
-    </div>
-  </div>
-  <div class="ferr" id="toFormErr" style="display:none;margin-top:8px;"></div>
-</div>
-<div class="submit-wrap">
-  <button type="button" class="submit-btn" id="toSubmitBtn" onclick="submitTrainerOnboarding()">Register Trainer</button>
-</div>
-<div class="success-card" id="toSuccessCard">
-  <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
-  <h2>Trainer Registered!</h2>
-  <p id="toSuccessMsg">Trainer has been added to the sheet.</p>
-  <button type="button" class="reset-btn" onclick="resetTrainerOnboarding()">Register Another Trainer</button>
-</div>
-
 </div>
 
 <div id="view-admin" class="hub-view">
@@ -2684,38 +2724,78 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
 
 <script>
 var calixHubView = 'onboarding';
+var calixOnboardMode = 'client';
 var HUB_HEADERS = {
   onboarding: ['Client Onboarding', 'New client registration'],
   payment: ['Payment Record', 'Record instalment payment'],
-  trainer: ['Trainer Onboarding', 'Register a new trainer'],
   admin: ['Admin', '']
 };
+function calixSwitchOnboardMode(mode) {
+  calixOnboardMode = mode;
+  var clientSec = document.getElementById('onboardClientSection');
+  var trainerSec = document.getElementById('onboardTrainerSection');
+  var innerNav = document.querySelector('.onboard-inner-switcher');
+  if (clientSec) clientSec.classList.toggle('hidden', mode !== 'client');
+  if (trainerSec) trainerSec.classList.toggle('hidden', mode !== 'trainer');
+  if (innerNav) innerNav.classList.toggle('hidden', calixHubView !== 'onboarding');
+  var nc = document.getElementById('onboardNavClient');
+  var nt = document.getElementById('onboardNavTrainer');
+  if (nc) nc.classList.toggle('active', mode === 'client');
+  if (nt) nt.classList.toggle('active', mode === 'trainer');
+  if (calixHubView === 'onboarding') {
+    var ht = document.getElementById('hubTitle');
+    var hs = document.getElementById('hubSub');
+    if (mode === 'trainer') {
+      if (ht) ht.textContent = 'Trainer Onboarding';
+      if (hs) hs.textContent = 'Register a new trainer';
+    } else {
+      if (ht) ht.textContent = HUB_HEADERS.onboarding[0];
+      if (hs) hs.textContent = HUB_HEADERS.onboarding[1];
+    }
+  }
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
 function calixSwitchHubView(view) {
   calixHubView = view;
-  ['onboarding','payment','session','trainer','admin'].forEach(function (v) {
+  ['onboarding','payment','session','admin'].forEach(function (v) {
     var el = document.getElementById(v === 'session' ? 'session-panel' : 'view-' + v);
     if (el) el.classList.toggle('active', v === view);
   });
-  var navMap = { onboarding: 'hubNavOnboarding', payment: 'hubNavPayment', session: 'hubNavSession', trainer: 'hubNavTrainer', admin: 'hubNavAdmin' };
+  var navMap = { onboarding: 'hubNavOnboarding', payment: 'hubNavPayment', session: 'hubNavSession', admin: 'hubNavAdmin' };
   Object.keys(navMap).forEach(function (k) {
     var btn = document.getElementById(navMap[k]);
     if (btn) btn.classList.toggle('active', k === view);
   });
+  var payForm = document.getElementById('recordPayForm');
+  if (payForm) payForm.classList.toggle('hidden', view !== 'payment');
+  if (typeof hideProgress === 'function') hideProgress();
   var hubHdr = document.getElementById('hub-header');
   if (hubHdr) {
     if (view === 'session') hubHdr.classList.add('hidden');
     else {
       hubHdr.classList.remove('hidden');
-      var t = HUB_HEADERS[view] || ['Cali Lab', ''];
-      var ht = document.getElementById('hubTitle');
-      var hs = document.getElementById('hubSub');
-      if (ht) ht.textContent = t[0];
-      if (hs) hs.textContent = t[1];
+      if (view === 'onboarding') {
+        calixSwitchOnboardMode(calixOnboardMode);
+      } else {
+        var t = HUB_HEADERS[view] || ['Cali Lab', ''];
+        var ht = document.getElementById('hubTitle');
+        var hs = document.getElementById('hubSub');
+        if (ht) ht.textContent = t[0];
+        if (hs) hs.textContent = t[1];
+        var innerNav = document.querySelector('.onboard-inner-switcher');
+        if (innerNav) innerNav.classList.add('hidden');
+      }
     }
   }
   if (typeof currentMode !== 'undefined') currentMode = view === 'payment' ? 'record' : 'new';
   var eb = document.getElementById('error-banner');
   if (eb) eb.classList.remove('show');
+  if (view === 'payment') {
+    var sc = document.getElementById('successCard');
+    var rpc = document.getElementById('rpSuccessCard');
+    if (sc) sc.classList.remove('show');
+    if (rpc) rpc.classList.remove('show');
+  }
   window.scrollTo({ top: 0, behavior: 'auto' });
   if (view === 'session' && typeof resizeCanvas === 'function') {
     requestAnimationFrame(function () { resizeCanvas(); });
@@ -2759,7 +2839,7 @@ function submitTrainerOnboarding() {
     .withSuccessHandler(function () {
       if (btn) { btn.disabled = false; btn.textContent = 'Register Trainer'; }
       document.getElementById('toSuccessMsg').textContent = data.name + ' has been added to the Trainer sheet.';
-      document.querySelectorAll('#view-trainer .card, #view-trainer .submit-wrap').forEach(function (el) { el.classList.add('hidden'); });
+      document.querySelectorAll('#onboardTrainerSection .card, #onboardTrainerSection .submit-wrap').forEach(function (el) { el.classList.add('hidden'); });
       document.getElementById('toSuccessCard').classList.add('show');
       if (typeof calixlabRefreshTrainerDropdowns === 'function') calixlabRefreshTrainerDropdowns();
     })
@@ -2777,7 +2857,7 @@ function resetTrainerOnboarding() {
   var errEl = document.getElementById('toFormErr');
   if (errEl) errEl.style.display = 'none';
   document.getElementById('toSuccessCard').classList.remove('show');
-  document.querySelectorAll('#view-trainer .card, #view-trainer .submit-wrap').forEach(function (el) { el.classList.remove('hidden'); });
+  document.querySelectorAll('#onboardTrainerSection .card, #onboardTrainerSection .submit-wrap').forEach(function (el) { el.classList.remove('hidden'); });
 }
 document.addEventListener('DOMContentLoaded', function () {
   calixSwitchHubView('onboarding');

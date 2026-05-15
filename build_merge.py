@@ -279,12 +279,13 @@ from hub_merge import (
     HUB_APP_SHELL_CSS,
     HUB_JS,
     HUB_NAV_HTML,
+    ONBOARD_INNER_SWITCHER_HTML,
     TRAINER_PANEL_HTML,
     prep_onboard_body,
 )
 
 ob_scoped = (
-    "@scope (#view-onboarding, #view-payment, #view-trainer, #view-admin) {\n"
+    "@scope (#view-onboarding, #view-payment, #view-admin) {\n"
     + ob_style
     + "\n}"
 )
@@ -386,6 +387,24 @@ body.app-body {
   width: 36px; height: 36px; border: none; border-radius: 50%;
   background: #f0efe9; color: #666; font-size: 20px; cursor: pointer;
 }
+/* Shared overlays (outside @scope — must be global) */
+.error-banner {
+  display: none; background: #FCEBEB; border: 1.5px solid #E24B4A; color: #791F1F;
+  padding: 12px 16px; border-radius: 10px; font-size: 14px; font-weight: 500;
+  max-width: 560px; margin: 0 auto 14px; text-align: center;
+}
+.error-banner.show { display: block; }
+.progress-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 9999; align-items: center; justify-content: center;
+}
+.progress-overlay.show { display: flex; }
+.progress-box {
+  background: white; border-radius: 16px; padding: 28px 32px; text-align: center; max-width: 300px; width: 90%;
+}
+.progress-box p { font-size: 15px; font-weight: 600; color: #0C447C; margin-bottom: 6px; }
+.progress-box small { font-size: 12px; color: #888; }
+.hidden { display: none !important; }
 """
 
 INVOICE_MODAL_HTML = """
@@ -579,7 +598,13 @@ out = f"""<!DOCTYPE html>
 {onboard_shared}
 
 <div id="view-onboarding" class="hub-view active">
+{ONBOARD_INNER_SWITCHER_HTML}
+<div id="onboardClientSection">
 {onboard_client}
+</div>
+<div id="onboardTrainerSection" class="hidden">
+{TRAINER_PANEL_HTML}
+</div>
 </div>
 
 <div id="view-payment" class="hub-view">
@@ -588,10 +613,6 @@ out = f"""<!DOCTYPE html>
 
 <div id="session-panel" class="hub-view">
 {session_body}
-</div>
-
-<div id="view-trainer" class="hub-view">
-{TRAINER_PANEL_HTML}
 </div>
 
 <div id="view-admin" class="hub-view">

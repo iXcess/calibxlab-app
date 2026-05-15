@@ -6,7 +6,6 @@ HUB_NAV_HTML = """
   <button type="button" class="mode-btn active" id="hubNavOnboarding" onclick="calixSwitchHubView('onboarding')">Onboarding</button>
   <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')">Payment Record</button>
   <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')">Session Log</button>
-  <button type="button" class="mode-btn" id="hubNavTrainer" onclick="calixSwitchHubView('trainer')">Trainer</button>
   <button type="button" class="mode-btn" id="hubNavAdmin" onclick="calixSwitchHubView('admin')">Admin</button>
 </nav>
 <div id="hub-header" class="header">
@@ -104,6 +103,27 @@ HUB_APP_SHELL_CSS = """
 .payroll-results { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
 .payroll-grand .rp-val { font-size: 22px; }
 .payroll-trainer-card .section-title { margin-bottom: 12px; }
+.onboard-inner-switcher {
+  display: flex; max-width: 560px; width: calc(100% - 32px); margin: 0 auto 16px;
+  background: white; border-radius: 12px; padding: 4px;
+  border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.onboard-inner-switcher .mode-btn {
+  flex: 1; padding: 10px 8px; border: none; border-radius: 9px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  background: transparent; color: #888; transition: all 0.2s;
+}
+.onboard-inner-switcher .mode-btn.active {
+  background: #185FA5; color: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+"""
+
+ONBOARD_INNER_SWITCHER_HTML = """
+<div class="onboard-inner-switcher" role="tablist" aria-label="Onboarding mode">
+  <button type="button" class="mode-btn active" id="onboardNavClient" onclick="calixSwitchOnboardMode('client')">New Client</button>
+  <button type="button" class="mode-btn" id="onboardNavTrainer" onclick="calixSwitchOnboardMode('trainer')">Register Trainer</button>
+</div>
 """
 
 ADMIN_PANEL_HTML = """
@@ -362,38 +382,78 @@ calixSwitchHubView = function (view) {
 HUB_JS = """
 <script>
 var calixHubView = 'onboarding';
+var calixOnboardMode = 'client';
 var HUB_HEADERS = {
   onboarding: ['Client Onboarding', 'New client registration'],
   payment: ['Payment Record', 'Record instalment payment'],
-  trainer: ['Trainer Onboarding', 'Register a new trainer'],
   admin: ['Admin', '']
 };
+function calixSwitchOnboardMode(mode) {
+  calixOnboardMode = mode;
+  var clientSec = document.getElementById('onboardClientSection');
+  var trainerSec = document.getElementById('onboardTrainerSection');
+  var innerNav = document.querySelector('.onboard-inner-switcher');
+  if (clientSec) clientSec.classList.toggle('hidden', mode !== 'client');
+  if (trainerSec) trainerSec.classList.toggle('hidden', mode !== 'trainer');
+  if (innerNav) innerNav.classList.toggle('hidden', calixHubView !== 'onboarding');
+  var nc = document.getElementById('onboardNavClient');
+  var nt = document.getElementById('onboardNavTrainer');
+  if (nc) nc.classList.toggle('active', mode === 'client');
+  if (nt) nt.classList.toggle('active', mode === 'trainer');
+  if (calixHubView === 'onboarding') {
+    var ht = document.getElementById('hubTitle');
+    var hs = document.getElementById('hubSub');
+    if (mode === 'trainer') {
+      if (ht) ht.textContent = 'Trainer Onboarding';
+      if (hs) hs.textContent = 'Register a new trainer';
+    } else {
+      if (ht) ht.textContent = HUB_HEADERS.onboarding[0];
+      if (hs) hs.textContent = HUB_HEADERS.onboarding[1];
+    }
+  }
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
 function calixSwitchHubView(view) {
   calixHubView = view;
-  ['onboarding','payment','session','trainer','admin'].forEach(function (v) {
+  ['onboarding','payment','session','admin'].forEach(function (v) {
     var el = document.getElementById(v === 'session' ? 'session-panel' : 'view-' + v);
     if (el) el.classList.toggle('active', v === view);
   });
-  var navMap = { onboarding: 'hubNavOnboarding', payment: 'hubNavPayment', session: 'hubNavSession', trainer: 'hubNavTrainer', admin: 'hubNavAdmin' };
+  var navMap = { onboarding: 'hubNavOnboarding', payment: 'hubNavPayment', session: 'hubNavSession', admin: 'hubNavAdmin' };
   Object.keys(navMap).forEach(function (k) {
     var btn = document.getElementById(navMap[k]);
     if (btn) btn.classList.toggle('active', k === view);
   });
+  var payForm = document.getElementById('recordPayForm');
+  if (payForm) payForm.classList.toggle('hidden', view !== 'payment');
+  if (typeof hideProgress === 'function') hideProgress();
   var hubHdr = document.getElementById('hub-header');
   if (hubHdr) {
     if (view === 'session') hubHdr.classList.add('hidden');
     else {
       hubHdr.classList.remove('hidden');
-      var t = HUB_HEADERS[view] || ['Cali Lab', ''];
-      var ht = document.getElementById('hubTitle');
-      var hs = document.getElementById('hubSub');
-      if (ht) ht.textContent = t[0];
-      if (hs) hs.textContent = t[1];
+      if (view === 'onboarding') {
+        calixSwitchOnboardMode(calixOnboardMode);
+      } else {
+        var t = HUB_HEADERS[view] || ['Cali Lab', ''];
+        var ht = document.getElementById('hubTitle');
+        var hs = document.getElementById('hubSub');
+        if (ht) ht.textContent = t[0];
+        if (hs) hs.textContent = t[1];
+        var innerNav = document.querySelector('.onboard-inner-switcher');
+        if (innerNav) innerNav.classList.add('hidden');
+      }
     }
   }
   if (typeof currentMode !== 'undefined') currentMode = view === 'payment' ? 'record' : 'new';
   var eb = document.getElementById('error-banner');
   if (eb) eb.classList.remove('show');
+  if (view === 'payment') {
+    var sc = document.getElementById('successCard');
+    var rpc = document.getElementById('rpSuccessCard');
+    if (sc) sc.classList.remove('show');
+    if (rpc) rpc.classList.remove('show');
+  }
   window.scrollTo({ top: 0, behavior: 'auto' });
   if (view === 'session' && typeof resizeCanvas === 'function') {
     requestAnimationFrame(function () { resizeCanvas(); });
@@ -437,7 +497,7 @@ function submitTrainerOnboarding() {
     .withSuccessHandler(function () {
       if (btn) { btn.disabled = false; btn.textContent = 'Register Trainer'; }
       document.getElementById('toSuccessMsg').textContent = data.name + ' has been added to the Trainer sheet.';
-      document.querySelectorAll('#view-trainer .card, #view-trainer .submit-wrap').forEach(function (el) { el.classList.add('hidden'); });
+      document.querySelectorAll('#onboardTrainerSection .card, #onboardTrainerSection .submit-wrap').forEach(function (el) { el.classList.add('hidden'); });
       document.getElementById('toSuccessCard').classList.add('show');
       if (typeof calixlabRefreshTrainerDropdowns === 'function') calixlabRefreshTrainerDropdowns();
     })
@@ -455,7 +515,7 @@ function resetTrainerOnboarding() {
   var errEl = document.getElementById('toFormErr');
   if (errEl) errEl.style.display = 'none';
   document.getElementById('toSuccessCard').classList.remove('show');
-  document.querySelectorAll('#view-trainer .card, #view-trainer .submit-wrap').forEach(function (el) { el.classList.remove('hidden'); });
+  document.querySelectorAll('#onboardTrainerSection .card, #onboardTrainerSection .submit-wrap').forEach(function (el) { el.classList.remove('hidden'); });
 }
 document.addEventListener('DOMContentLoaded', function () {
   calixSwitchHubView('onboarding');
@@ -474,8 +534,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 def prep_onboard_body(body: str) -> tuple[str, str, str, str]:
-    body = re.sub(r'<div class="header">[\s\S]*?</div>\s*', '', body, count=1)
-    body = re.sub(r'<!-- MODE SWITCHER -->[\s\S]*?</div>\s*', '', body, count=1)
+    def find_div_end(src: str, start: int) -> int:
+        i = start
+        depth = 0
+        while i < len(src):
+            next_open = src.find("<div", i)
+            next_close = src.find("</div>", i)
+            if next_close < 0:
+                break
+            if next_open != -1 and next_open < next_close:
+                depth += 1
+                gt = src.find(">", next_open)
+                if gt < 0:
+                    break
+                i = gt + 1
+                continue
+            depth -= 1
+            i = next_close + len("</div>")
+            if depth == 0:
+                return i
+        raise ValueError("Could not find matching </div> while preparing onboarding body.")
+
+    header_i = body.find('<div class="header">')
+    if header_i >= 0:
+        header_end = find_div_end(body, header_i)
+        body = body[:header_i] + body[header_end:]
+
+    mode_i = body.find('<div class="mode-switcher">')
+    if mode_i >= 0:
+        mode_end = find_div_end(body, mode_i)
+        body = body[:mode_i] + body[mode_end:]
+
     script_i = body.rfind("<script>")
     scripts = body[script_i:] if script_i >= 0 else ""
     main = body[:script_i] if script_i >= 0 else body
@@ -484,14 +573,31 @@ def prep_onboard_body(body: str) -> tuple[str, str, str, str]:
     succ_i = main.find("<!-- SUCCESS SCREENS -->")
     if new_i < 0 or pay_i < 0:
         raise ValueError("Onboarding HTML missing newClientForm or recordPayForm")
+
+    new_end = find_div_end(main, new_i)
+    pay_end = find_div_end(main, pay_i)
     shared = main[:new_i].strip()
-    client_block = main[new_i:pay_i].strip()
-    pay_block = main[pay_i:succ_i].strip() if succ_i >= 0 else main[pay_i:].strip()
+    client_block = main[new_i:new_end].strip()
+    pay_block = main[pay_i:pay_end].strip()
     succ_block = main[succ_i:].strip() if succ_i >= 0 else ""
-    m_ok = re.search(r'<div class="success-card" id="successCard">[\s\S]*?</div>\s*', succ_block)
-    m_rp = re.search(r'<div class="success-card" id="rpSuccessCard">[\s\S]*?</div>\s*', succ_block)
-    client_html = client_block + ("\n" + m_ok.group(0).strip() if m_ok else "")
-    payment_html = pay_block + ("\n" + m_rp.group(0).strip() if m_rp else "")
+
+    def extract_success_block(src: str, marker: str) -> str:
+        start = src.find(marker)
+        if start < 0:
+            return ""
+        end = find_div_end(src, start)
+        return src[start:end].strip()
+
+    success_client = extract_success_block(succ_block, '<div class="success-card" id="successCard">')
+    success_payment = extract_success_block(succ_block, '<div class="success-card" id="rpSuccessCard">')
+    pay_block = re.sub(
+        r'<div id="recordPayForm"\s+class="hidden"',
+        '<div id="recordPayForm"',
+        pay_block,
+        count=1,
+    )
+    client_html = client_block + ("\n" + success_client if success_client else "")
+    payment_html = pay_block + ("\n" + success_payment if success_payment else "")
     scripts = re.sub(
         r"function switchMode\(mode\) \{[\s\S]*?window\.scrollTo\(\{top: 0, behavior: 'smooth'\}\);\n\}",
         "",
