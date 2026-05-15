@@ -127,7 +127,7 @@ body.app-body {
 .icon-btn, .chip-btn, .toggle-btn, .preset-btn, .mode-btn { min-height: 44px; }
 
 /* Shared brand images */
-.calix-logo-full { max-width: min(150px, 94vw); height: auto; display: block; margin: 0 auto; }
+.calix-logo-full { max-width: min(195px, 94vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
 .brand-success-logo {
   width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px; display: block;
@@ -528,7 +528,7 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
   display: flex; align-items: center; justify-content: center;
 }
 .logo img.calix-logo-full {
-  max-width: min(150px, 94vw); height: auto; display: block;
+  max-width: min(195px, 94vw); height: auto; display: block;
 }
 .brand-success-wrap {
   width: 88px; height: 88px; border-radius: 50%;
@@ -1283,7 +1283,7 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
   <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
   <h2>Registration Complete!</h2>
   <p id="successMsg">Client has been successfully onboarded.</p>
-  <p id="driveMsg" style="margin-top:8px;font-size:13px;color:#3B6D11;"></p>
+  <div id="onboardInvoiceMsg" class="success-invoice-msg"></div>
   <button type="button" class="reset-btn" onclick="resetForm('new')">Register Another Client</button>
 </div>
 </div>
@@ -2631,12 +2631,17 @@ function submitForm() {
         hideProgress();
         document.getElementById('newClientForm').classList.add('hidden');
         document.getElementById('successMsg').textContent = data.fullName + ' has been registered under ' + data.trainerName + '.';
-        if (result && result.folderUrl)
-          document.getElementById('driveMsg').innerHTML = '📁 Saved to <a href="'+result.folderUrl+'" target="_blank" style="color:#185FA5;">Google Drive</a>';
         lastRegisteredRowIndex = result && result.rowIndex ? result.rowIndex : null;
         document.getElementById('successCard').classList.add('show');
         if (window.CalixlabInvoiceModal) {
-          CalixlabInvoiceModal.showAfterSubmit({ type: 'onboarding', row: lastRegisteredRowIndex, clientName: data.fullName });
+          CalixlabInvoiceModal.showInlineDownload('onboardInvoiceMsg', {
+            type: 'onboarding',
+            row: lastRegisteredRowIndex,
+            clientName: data.fullName
+          });
+        } else {
+          var oi = document.getElementById('onboardInvoiceMsg');
+          if (oi) oi.textContent = 'Invoice download unavailable.';
         }
       })
       .withFailureHandler(function(err) {
@@ -2734,7 +2739,8 @@ function resetForm(mode) {
     document.getElementById('waiverCheck').classList.remove('checked');
     clearSignature();
     document.getElementById('waiverClientName').classList.remove('show');
-    document.getElementById('driveMsg').textContent = '';
+    var oi = document.getElementById('onboardInvoiceMsg');
+    if (oi) oi.textContent = '';
     document.getElementById('lookupResults').innerHTML = '';
     lookupCache = {};
     var today = new Date().toISOString().split('T')[0];

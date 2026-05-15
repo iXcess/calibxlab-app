@@ -3,15 +3,21 @@
  * Template: InvoiceTemplate.html → PDF via HtmlService.
  */
 
-function formatMoneyMyr_(n) {
+function formatDecimal_(n) {
   var v = parseFloat(n) || 0;
-  return 'MYR' + Utilities.formatString('%,.2f', v);
+  var parts = Math.abs(v).toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (v < 0 ? '-' : '') + parts.join('.');
+}
+
+function formatMoneyMyr_(n) {
+  return 'MYR' + formatDecimal_(n);
 }
 
 function formatMoneyNeg_(n) {
   var v = parseFloat(n) || 0;
   if (v <= 0) return '(-) 0.00';
-  return '(-) ' + Utilities.formatString('%,.2f', v);
+  return '(-) ' + formatDecimal_(v);
 }
 
 function formatDateMyr_(d) {
@@ -34,20 +40,9 @@ function escapeHtml_(s) {
     .replace(/"/g, '&quot;');
 }
 
-function getInvoiceLogoDataUri_() {
-  var key = 'INVOICE_LOGO_DATA_URI';
-  var cached = PropertiesService.getScriptProperties().getProperty(key);
-  if (cached) return cached;
-  var url = 'https://ixcess.github.io/calibxlab-app/assets/calixlab-logo-header.png';
-  try {
-    var blob = UrlFetchApp.fetch(url, { muteHttpExceptions: true }).getBlob();
-    if (blob && blob.getBytes().length > 100) {
-      var uri = 'data:image/png;base64,' + Utilities.base64Encode(blob.getBytes());
-      PropertiesService.getScriptProperties().setProperty(key, uri);
-      return uri;
-    }
-  } catch (e) { /* fallback below */ }
-  return 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+/** Public HTTPS logo — works in HtmlService PDF (data URIs are stripped). */
+function getInvoiceLogoSrc_() {
+  return 'https://ixcess.github.io/calibxlab-app/assets/calixlab-logo-header.png';
 }
 
 function getInvoiceSheet_() {
@@ -137,9 +132,9 @@ function buildInvoiceModelFromRow_(row, rowIndex, options) {
     lineItems.push({
       index: 1,
       description: buildLineItemDescription_(row, options.trainerName),
-      qty: Utilities.formatString('%,.2f', sessions),
-      rate: Utilities.formatString('%,.2f', rate),
-      amount: Utilities.formatString('%,.2f', total)
+      qty: formatDecimal_(sessions),
+      rate: formatDecimal_(rate),
+      amount: formatDecimal_(total)
     });
   }
 
@@ -156,7 +151,7 @@ function buildInvoiceModelFromRow_(row, rowIndex, options) {
     billName: row[1] || '',
     billContact: contactParts.join(' · '),
     lineItems: lineItems,
-    subTotal: Utilities.formatString('%,.2f', total),
+    subTotal: formatDecimal_(total),
     taxNote: '(Tax Inclusive)',
     total: formatMoneyMyr_(total),
     paymentMade: formatMoneyNeg_(paid),
@@ -172,7 +167,7 @@ function buildInvoiceModelFromRow_(row, rowIndex, options) {
     companyLegal: COMPANY_LEGAL_NAME,
     companyDisplay: COMPANY_DISPLAY_NAME,
     companyAddress: COMPANY_ADDRESS_LINES,
-    logoDataUri: getInvoiceLogoDataUri_(),
+    logoSrc: getInvoiceLogoSrc_(),
     meta: { rowIndex: rowIndex, type: type, totalValue: total, paid: paid, balance: balance }
   };
 }
@@ -205,7 +200,7 @@ function renderInvoiceHtml_(model) {
   t.companyLegal = model.companyLegal;
   t.companyDisplay = model.companyDisplay;
   t.companyAddress = model.companyAddress;
-  t.logoDataUri = model.logoDataUri;
+  t.logoSrc = model.logoSrc;
   t.billName = escapeHtml_(model.billName);
   t.billContact = escapeHtml_(model.billContact);
   t.invoiceNumber = escapeHtml_(model.invoiceNumber);

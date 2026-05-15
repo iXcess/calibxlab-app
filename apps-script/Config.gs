@@ -21,7 +21,7 @@ const STAGING_SHEET_NAME = 'Clients';
  */
 const ACTIVE_TARGET = 'production';
 
-/** Tab listing trainers (column A: name; row 1 header optional). */
+/** Tab listing trainers (row 1 headers; name in Trainer column, Timestamp may be column A). */
 const TRAINER_SHEET_NAME = 'Trainer';
 
 /** Tab for Session Log form submissions. */

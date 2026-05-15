@@ -120,8 +120,54 @@ function isTrainerHeader_(val) {
   return h === 'trainer' || h === 'name' || h === 'trainer name';
 }
 
+function isTrainerSheetHeaderCell_(val) {
+  var h = String(val || '').trim().toLowerCase();
+  if (!h) return false;
+  if (isTrainerHeader_(h)) return true;
+  return (
+    h === 'timestamp' || h === 'phone' || h === 'email' || h === 'ic' ||
+    h === 'emergency contact' || h === 'emergency phone' || h === 'date' ||
+    h === 'registered' || h === 'created'
+  );
+}
+
+function trainerSheetHasHeaderRow_(row) {
+  if (!row || !row.length) return false;
+  for (var c = 0; c < row.length; c++) {
+    if (isTrainerSheetHeaderCell_(row[c])) return true;
+  }
+  return false;
+}
+
+/** Column index for trainer display name (supports Timestamp-first sheets). */
+function trainerNameColumnIndex_(headerRow) {
+  if (!headerRow || !headerRow.length) return 0;
+  for (var c = 0; c < headerRow.length; c++) {
+    var h = String(headerRow[c] || '').trim().toLowerCase();
+    if (h === 'trainer' || h === 'name' || h === 'trainer name') return c;
+  }
+  return 0;
+}
+
+function looksLikeTrainerTimestamp_(val) {
+  if (val instanceof Date) return true;
+  var s = String(val || '').trim();
+  if (!s) return false;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return true;
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(s)) return true;
+  return false;
+}
+
+function isTrainerListableName_(name) {
+  if (!name) return false;
+  var lower = String(name).trim().toLowerCase();
+  if (isTrainerSheetHeaderCell_(lower)) return false;
+  if (looksLikeTrainerTimestamp_(name)) return false;
+  return true;
+}
+
 var TRAINER_HEADERS_ = [
-  'Trainer', 'Phone', 'Email', 'IC', 'Emergency Contact', 'Emergency Phone', 'Timestamp'
+  'Timestamp', 'Trainer', 'Phone', 'Email', 'IC', 'Emergency Contact', 'Emergency Phone'
 ];
 
 function ensureTrainerSheet_() {
@@ -150,11 +196,17 @@ function listTrainers() {
   seedDefaultTrainersIfEmpty_();
   var sheet = getTrainerSheet_();
   var data = sheet.getDataRange().getValues();
+  if (!data.length) return [];
+  var nameCol = 0;
+  var startRow = 0;
+  if (trainerSheetHasHeaderRow_(data[0])) {
+    nameCol = trainerNameColumnIndex_(data[0]);
+    startRow = 1;
+  }
   var names = [];
-  for (var r = 0; r < data.length; r++) {
-    var name = String(data[r][0] || '').trim();
-    if (!name) continue;
-    if (r === 0 && isTrainerHeader_(name)) continue;
+  for (var r = startRow; r < data.length; r++) {
+    var name = String(data[r][nameCol] || '').trim();
+    if (!isTrainerListableName_(name)) continue;
     if (names.indexOf(name) === -1) names.push(name);
   }
   names.sort(function (a, b) { return a.localeCompare(b, undefined, { sensitivity: 'base' }); });
@@ -172,15 +224,38 @@ function addTrainer(payload) {
   var sheet = ensureTrainerSheet_();
   var existing = listTrainers();
   if (existing.indexOf(name) >= 0) throw new Error('Trainer already exists: ' + name);
-  var row = [
-    name,
-    String((payload && payload.phone) || '').trim(),
-    String((payload && payload.email) || '').trim(),
-    String((payload && payload.ic) || '').trim(),
-    String((payload && payload.emergencyContact) || '').trim(),
-    String((payload && payload.emergencyPhone) || '').trim(),
-    new Date()
-  ];
+  var data = sheet.getDataRange().getValues();
+  var nameCol = 0;
+  var hasHeader = data.length && trainerSheetHasHeaderRow_(data[0]);
+  if (hasHeader) nameCol = trainerNameColumnIndex_(data[0]);
+  var row = new Array(Math.max(TRAINER_HEADERS_.length, sheet.getLastColumn() || TRAINER_HEADERS_.length));
+  for (var i = 0; i < row.length; i++) row[i] = '';
+  if (hasHeader && nameCol === 0) {
+    row[0] = new Date();
+    row[1] = name;
+    row[2] = String((payload && payload.phone) || '').trim();
+    row[3] = String((payload && payload.email) || '').trim();
+    row[4] = String((payload && payload.ic) || '').trim();
+    row[5] = String((payload && payload.emergencyContact) || '').trim();
+    row[6] = String((payload && payload.emergencyPhone) || '').trim();
+  } else if (hasHeader) {
+    row[nameCol] = name;
+    var phoneCol = nameCol + 1;
+    if (phoneCol < row.length) row[phoneCol] = String((payload && payload.phone) || '').trim();
+    if (phoneCol + 1 < row.length) row[phoneCol + 1] = String((payload && payload.email) || '').trim();
+    if (phoneCol + 2 < row.length) row[phoneCol + 2] = String((payload && payload.ic) || '').trim();
+    if (phoneCol + 3 < row.length) row[phoneCol + 3] = String((payload && payload.emergencyContact) || '').trim();
+    if (phoneCol + 4 < row.length) row[phoneCol + 4] = String((payload && payload.emergencyPhone) || '').trim();
+    if (nameCol !== 0 && row[0] === '') row[0] = new Date();
+  } else {
+    row[0] = name;
+    row[1] = String((payload && payload.phone) || '').trim();
+    row[2] = String((payload && payload.email) || '').trim();
+    row[3] = String((payload && payload.ic) || '').trim();
+    row[4] = String((payload && payload.emergencyContact) || '').trim();
+    row[5] = String((payload && payload.emergencyPhone) || '').trim();
+    row[6] = new Date();
+  }
   sheet.appendRow(row);
   return { ok: true, name: name };
 }
@@ -190,9 +265,14 @@ function deleteTrainer(payload) {
   if (!name) throw new Error('Trainer name required.');
   var sheet = getTrainerSheet_();
   var data = sheet.getDataRange().getValues();
-  for (var r = data.length - 1; r >= 0; r--) {
-    var cell = String(data[r][0] || '').trim();
-    if (r === 0 && isTrainerHeader_(cell)) continue;
+  var nameCol = 0;
+  var startRow = 0;
+  if (data.length && trainerSheetHasHeaderRow_(data[0])) {
+    nameCol = trainerNameColumnIndex_(data[0]);
+    startRow = 1;
+  }
+  for (var r = data.length - 1; r >= startRow; r--) {
+    var cell = String(data[r][nameCol] || '').trim();
     if (cell === name) {
       sheet.deleteRow(r + 1);
       return { ok: true, name: name };
