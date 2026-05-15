@@ -29,30 +29,23 @@ def extract_master_panel_css(ob_style: str) -> str:
 SHARED_HEADER_CSS = """
 .header { text-align: center; margin-bottom: 24px; }
 .logo {
-  margin: 0 auto 12px;
+  margin: 18px auto 22px;
   display: flex; align-items: center; justify-content: center;
 }
 .logo img.calix-logo-full {
-  max-width: min(300px, 94vw); height: auto; display: block;
+  max-width: min(195px, 94vw); height: auto; display: block;
 }
 .header h1 { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1.2; }
 .header p { font-size: 14px; color: #666; margin-top: 4px; }
-.session-date-pill {
-  display: inline-flex; align-items: center; gap: 7px;
-  margin-top: 12px; padding: 8px 14px;
-  background: #E6F1FB; border: 1px solid #B5D4F4; border-radius: 20px;
-  font-size: 13px; color: #0C447C; font-weight: 500;
-}
 """
 
 SESSION_HEADER_HTML = """
 <div class="header">
   <motion class="logo">
-    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="280" height="56"/>
+    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="182" height="36"/>
   </div>
   <h1>Session Log</h1>
   <p>Submit immediately after every session.</p>
-  <p class="session-date-pill" id="hDate">📅 —</p>
 </motion>
 """.replace("<motion ", "<div ").replace("</motion>", "</div>")
 
@@ -265,11 +258,18 @@ def prep_session_body(body: str) -> str:
         body,
         count=1,
     )
-    return body.replace(
+    body = body.replace(
         '<div style="padding:0 16px;max-width:560px;margin:0 auto;">',
         '<div class="session-stack">',
         1,
     )
+    body = re.sub(
+        r"\s*document\.getElementById\('hDate'\)\.textContent\s*=\s*'📅 '\s*"
+        r"\+ n\.toLocaleDateString\([^)]+\);",
+        "",
+        body,
+    )
+    return body
 
 
 ob_style = extract_between(ONBOARD, "<style>", "</style>")
@@ -281,6 +281,16 @@ session_scoped = (
     + "\n}"
 )
 # Drop html rule; body -> :scope once
+ob_style = ob_style.replace("max-width: min(300px, 94vw)", "max-width: min(195px, 94vw)")
+ob_style = ob_style.replace("max-width: min(150px, 94vw)", "max-width: min(195px, 94vw)")
+ob_style = ob_style.replace(
+    "input[type=number], input[type=date], select, textarea",
+    "input[type=number], input[type=date], input[type=password], select, textarea",
+)
+ob_style = ob_style.replace(
+    "input:focus, select:focus, textarea:focus",
+    "input:focus, input[type=password]:focus, select:focus, textarea:focus",
+)
 ob_style = ob_style.replace("html { -webkit-text-size-adjust: 100%; }", "")
 ob_style = ob_style.replace(
     "body {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;",
@@ -353,7 +363,7 @@ body.app-body {
 }
 """ + HUB_APP_SHELL_CSS + SHARED_HEADER_CSS + MOBILE_RESPONSIVE_CSS + """
 /* Shared brand images */
-.calix-logo-full { max-width: min(300px, 94vw); height: auto; display: block; margin: 0 auto; }
+.calix-logo-full { max-width: min(195px, 94vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
 .brand-success-logo {
   width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px; display: block;
@@ -451,6 +461,18 @@ body.app-body {
 .progress-box p { font-size: 15px; font-weight: 600; color: #0C447C; margin-bottom: 6px; }
 .progress-box small { font-size: 12px; color: #888; }
 .hidden { display: none !important; }
+/* Match text fields (admin password, etc.) */
+input[type=password] {
+  width: 100%; border: 1.5px solid #ddd; border-radius: 10px;
+  padding: 13px 14px; font-size: 16px; color: #1a1a1a; background: #fafafa;
+  font-family: inherit; -webkit-appearance: none; appearance: none;
+  transition: border-color 0.15s, background 0.15s; min-height: 48px;
+  box-sizing: border-box;
+}
+input[type=password]:focus {
+  outline: none; border-color: #185FA5; background: white;
+  box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+}
 """
 
 INVOICE_MODAL_HTML = """

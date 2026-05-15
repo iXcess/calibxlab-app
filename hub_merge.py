@@ -4,13 +4,13 @@ import re
 HUB_NAV_HTML = """
 <nav class="hub-mode-switcher" role="navigation" aria-label="Main">
   <button type="button" class="mode-btn active" id="hubNavOnboarding" onclick="calixSwitchHubView('onboarding')">Onboarding</button>
-  <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')" aria-label="Payment Record">Payment</button>
-  <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')" aria-label="Session Log">Session</button>
+  <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')" aria-label="Payment Record">Pay</button>
+  <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')" aria-label="Session Log">Log</button>
   <button type="button" class="mode-btn" id="hubNavAdmin" onclick="calixSwitchHubView('admin')">Admin</button>
 </nav>
 <div id="hub-header" class="header">
   <div class="logo">
-    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="280" height="56"/>
+    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="182" height="36"/>
   </div>
   <h1 id="hubTitle">Client Onboarding</h1>
   <p id="hubSub">New client registration</p>
