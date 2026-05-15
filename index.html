@@ -899,36 +899,23 @@ window.addEventListener('DOMContentLoaded', ()=>{
   sync();
 });
 
-// ── AUTOCOMPLETE ──────────────────────────────────
-function onAcIn(){
-  const q=document.getElementById('clientIn').value.trim();
-  clearErr();
-  // if user retypes, reset
-  if(S.clientData && S.clientData.name!==q){
-    S.clientData=null; S.client=q;
-    document.getElementById('clientIn').classList.remove('filled');
-    document.getElementById('siPanel').classList.remove('show');
-    setLeadBox(null);
-  } else { S.client=q; }
-  if(q.length<2){ closeDrop(); sync(); return; }
-  const ql=q.toLowerCase();
-  acRes=[]; /* replaced below via sheet lookup */
-  void ql;
-  acHi=-1;
-  const dd=document.getElementById('aDrop');
-  if(!acRes.length){
-    dd.innerHTML=`<div class="aempty">No match — type full name and continue</div>`;
+// ── AUTOCOMPLETE (Google Sheet via lookupClient) ─────
+function renderAcResults(q) {
+  const dd = document.getElementById('aDrop');
+  acHi = -1;
+  if (!acRes.length) {
+    dd.innerHTML = '<div class="aempty">No match in client sheet — check spelling or add client in Onboarding</div>';
   } else {
-    dd.innerHTML=acRes.map((c,i)=>{
-      const left=c.total-c.done;
-      const hl=c.name.replace(new RegExp(`(${esc(q)})`,'gi'),'<mark>$1</mark>');
-      const bc=left<=0?'ab-bad':left<=3?'ab-warn':'ab-ok';
-      const bt=left<=0?'⚠️ Package done':left<=3?`${left} left ⚠️`:`${left} left`;
-      const mult=c.lead==='Calixlab'?'0.6×':'0.7×';
+    dd.innerHTML = acRes.map((c, i) => {
+      const left = c.total - c.done;
+      const hl = c.name.replace(new RegExp(`(${esc(q)})`, 'gi'), '<mark>$1</mark>');
+      const bc = left <= 0 ? 'ab-bad' : left <= 3 ? 'ab-warn' : 'ab-ok';
+      const bt = left <= 0 ? '⚠️ Package done' : left <= 3 ? `${left} left ⚠️` : `${left} left`;
+      const mult = c.lead === 'Calixlab' ? '0.6×' : '0.7×';
       return `<div class="aitem" data-i="${i}" onmousedown="pickClient(${i})">
         <span>${hl}</span>
         <div class="aitem-right">
-          <span class="alead-badge">${mult} ${c.lead}</span>
+          <span class="alead-badge">${mult} ${c.leadLabel || c.lead}</span>
           <span class="abadge ${bc}">${bt}</span>
         </div>
       </div>`;
@@ -936,6 +923,48 @@ function onAcIn(){
   }
   dd.classList.add('open');
   sync();
+}
+
+function onAcIn() {
+  const q = document.getElementById('clientIn').value.trim();
+  clearErr();
+  if (S.clientData && S.clientData.name !== q) {
+    S.clientData = null;
+    S.client = q;
+    document.getElementById('clientIn').classList.remove('filled');
+    document.getElementById('siPanel').classList.remove('show');
+    setLeadBox(null);
+  } else { S.client = q; }
+  if (q.length < 2) { closeDrop(); acRes = []; sync(); return; }
+
+  const dd = document.getElementById('aDrop');
+  dd.innerHTML = '<div class="aempty">🔍 Searching client sheet…</div>';
+  dd.classList.add('open');
+
+  clearTimeout(acTimer);
+  acTimer = setTimeout(function () {
+    if (acCache[q]) {
+      acRes = acCache[q];
+      renderAcResults(q);
+      return;
+    }
+    if (!window.google || !window.google.script || !window.google.script.run) {
+      acRes = [];
+      dd.innerHTML = '<div class="aempty">Client search unavailable — check config.js</div>';
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function (results) {
+        acRes = (results || []).map(mapSheetRowToSessionClient);
+        acCache[q] = acRes;
+        renderAcResults(q);
+      })
+      .withFailureHandler(function () {
+        acRes = [];
+        dd.innerHTML = '<div class="aempty">Search failed — try again</div>';
+      })
+      .lookupClient(q);
+  }, 300);
 }
 
 function onAcFocus(){
