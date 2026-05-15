@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Merge Session Log + Onboarding HTML into one scoped webapp."""
+import re
 from pathlib import Path
 
 SESSION = Path("/home/ting/Downloads/Calixliab Session Form HTML.txt").read_text(encoding="utf-8")
@@ -19,33 +20,230 @@ def extract_body_inner(html: str) -> str:
     return html[i:j].strip()
 
 
-session_style = extract_between(SESSION, "<style>", "</style>")
-# Session: move :root out; scope the rest
-if ":root" in session_style:
-    root_end = session_style.index("}") + 1
-    # find end of :root block (may have nested - session :root is flat)
-    depth = 0
-    start = session_style.index(":root")
-    for k in range(start, len(session_style)):
-        if session_style[k] == "{":
-            depth += 1
-        elif session_style[k] == "}":
-            depth -= 1
-            if depth == 0:
-                root_block = session_style[start : k + 1]
-                rest_style = session_style[k + 1 :].lstrip()
-                break
-    else:
-        root_block = ""
-        rest_style = session_style
-else:
-    root_block = ""
-    rest_style = session_style
+def extract_master_panel_css(ob_style: str) -> str:
+    start = ob_style.index("/* ── CARD ──")
+    end = ob_style.index("/* ── TRAINER ──")
+    return ob_style[start:end].strip()
 
-rest_style = rest_style.replace("body {", ":scope {", 1)
-session_scoped = f"{root_block}\n@scope (#session-panel) {{\n{rest_style}\n}}"
+
+SHARED_HEADER_CSS = """
+.header { text-align: center; margin-bottom: 24px; }
+.logo {
+  margin: 0 auto 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.logo img.calix-logo-full {
+  max-width: min(300px, 94vw); height: auto; display: block;
+}
+.header h1 { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1.2; }
+.header p { font-size: 14px; color: #666; margin-top: 4px; }
+.session-date-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin-top: 12px; padding: 8px 14px;
+  background: #E6F1FB; border: 1px solid #B5D4F4; border-radius: 20px;
+  font-size: 13px; color: #0C447C; font-weight: 500;
+}
+"""
+
+SESSION_HEADER_HTML = """
+<div class="header">
+  <motion class="logo">
+    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="280" height="56"/>
+  </div>
+  <h1>Session Log</h1>
+  <p>Submit immediately after every session.</p>
+  <p class="session-date-pill" id="hDate">📅 —</p>
+</motion>
+""".replace("<motion ", "<div ").replace("</motion>", "</div>")
+
+SESSION_COMPONENT_CSS = """
+/* Session-only UI (onboarding master theme) */
+.lbl {
+  display: block; font-size: 13px; font-weight: 600; color: #444;
+  margin-bottom: 7px; line-height: 1.3;
+}
+.lbl .r { color: #E24B4A; }
+.hint { font-size: 12px; color: #999; margin-top: 7px; line-height: 1.5; }
+.ferr { font-size: 12px; color: #E24B4A; margin-top: 6px; font-weight: 500; display: none; }
+.prog {
+  background: white; border: 1px solid #e8e8e8; border-radius: 16px;
+  padding: 14px 20px; max-width: 560px; margin: 0 auto 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.prog-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
+.prog-step { font-size: 13px; font-weight: 600; color: #185FA5; }
+.prog-frac { font-size: 13px; color: #999; }
+.prog-bar { height: 4px; background: #e8e8e8; border-radius: 2px; overflow: hidden; }
+.prog-fill { height: 100%; background: #185FA5; border-radius: 2px; transition: width .4s ease; }
+.body { padding: 0; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.card.err-card { border-color: #E24B4A !important; }
+.sw { position: relative; }
+.sw::after {
+  content: '▾'; position: absolute; right: 14px; top: 50%;
+  transform: translateY(-50%); color: #888; pointer-events: none;
+}
+.aw { position: relative; }
+.ai {
+  width: 100%; padding: 13px 14px; border: 1.5px solid #ddd; border-radius: 10px;
+  font-size: 16px; color: #1a1a1a; background: #fafafa; outline: none;
+  font-family: inherit; transition: border-color .15s, background .15s; min-height: 48px;
+}
+.ai:focus { outline: none; border-color: #185FA5; background: white; box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+.ai.filled { border-color: #B5D4F4; background: #f0f7ff; color: #0C447C; font-weight: 600; }
+.adrop {
+  position: absolute; top: calc(100% + 5px); left: 0; right: 0;
+  background: white; border: 1.5px solid #185FA5; border-radius: 11px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-height: 250px; overflow-y: auto; z-index: 300; display: none;
+}
+.adrop.open { display: block; }
+.aitem {
+  padding: 12px 16px; font-size: 14px; cursor: pointer;
+  border-bottom: 1px solid #e8e8e8; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.aitem:last-child { border-bottom: none; }
+.aitem:hover, .aitem.hi { background: #E6F1FB; }
+.aitem mark { background: none; color: #185FA5; font-weight: 700; }
+.abadge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.ab-ok { background: #EAF3DE; color: #27500A; }
+.ab-warn { background: #FFF8EE; color: #854F0B; }
+.ab-bad { background: #FCEBEB; color: #A32D2D; }
+.alead-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; background: #E6F1FB; color: #185FA5; }
+.aempty { padding: 13px 16px; font-size: 13px; color: #999; font-style: italic; }
+.si {
+  margin-top: 12px; background: #f0f7ff; border: 1.5px solid #B5D4F4;
+  border-radius: 16px; padding: 16px; display: none;
+}
+.si.show { display: block; }
+.si-ttl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #185FA5; margin-bottom: 12px; }
+.si-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.si-box { background: white; border: 1px solid #B5D4F4; border-radius: 10px; padding: 10px; text-align: center; }
+.si-v { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1; }
+.si-k { font-size: 10px; color: #666; text-transform: uppercase; margin-top: 4px; }
+.si-box.ok .si-v { color: #3B6D11; }
+.si-box.warn .si-v { color: #854F0B; }
+.si-box.bad .si-v { color: #A32D2D; }
+.si-next { background: white; border: 1px solid #B5D4F4; border-radius: 10px; padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start; }
+.si-nb strong { display: block; font-size: 14px; color: #0C447C; margin-bottom: 3px; }
+.si-nb span { font-size: 12px; color: #666; line-height: 1.4; }
+.si-foot { font-size: 11px; color: #999; margin-top: 10px; }
+.lead-auto {
+  padding: 14px 16px; border-radius: 10px; border: 1.5px solid #ddd;
+  background: #fafafa; display: flex; align-items: center; justify-content: space-between; min-height: 54px;
+}
+.lead-auto.set-calix { background: #f0f7ff; border-color: #B5D4F4; }
+.lead-auto.set-own { background: #EAF3DE; border-color: #639922; }
+.lead-mult { font-size: 26px; font-weight: 700; line-height: 1; }
+.set-calix .lead-mult, .set-calix .lead-name { color: #185FA5; }
+.set-own .lead-mult, .set-own .lead-name { color: #3B6D11; }
+.lead-name { font-size: 15px; font-weight: 600; }
+.lead-right { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.set-calix .lead-right { background: #E6F1FB; color: #185FA5; }
+.set-own .lead-right { background: #EAF3DE; color: #3B6D11; }
+.lead-empty { font-size: 13px; color: #999; font-style: italic; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  flex: 1; min-width: 80px; padding: 12px 8px; border: 1.5px solid #ddd; border-radius: 10px;
+  background: white; font-size: 14px; font-weight: 500; color: #555; cursor: pointer; text-align: center;
+  font-family: inherit; min-height: 44px; transition: all .15s;
+}
+.chip:hover { border-color: #185FA5; background: #E6F1FB; }
+.chip.t-g { background: #EAF3DE; border-color: #639922; color: #27500A; font-weight: 700; }
+.chip.t-s { background: #FFF8EE; border-color: #FAC775; color: #854F0B; font-weight: 700; }
+.chip.t-p { background: #FCEBEB; border-color: #E24B4A; color: #A32D2D; font-weight: 700; }
+.ctr { display: flex; align-items: center; border: 1.5px solid #ddd; border-radius: 10px; overflow: hidden; background: #fafafa; }
+.ctr.on { border-color: #185FA5; background: #f0f7ff; }
+.cb { width: 54px; height: 52px; border: none; background: transparent; font-size: 22px; color: #555; cursor: pointer; }
+.cv { flex: 1; text-align: center; font-size: 26px; font-weight: 700; border: none; background: transparent; outline: none; color: #1a1a1a; }
+.ctr.on .cv { color: #185FA5; }
+.sign-card { background: #f0f7ff; border: 2px solid #B5D4F4; border-radius: 16px; padding: 18px; }
+.sign-ttl { font-size: 15px; font-weight: 700; color: #185FA5; margin-bottom: 3px; }
+.sign-sub { font-size: 12px; color: #666; margin-bottom: 14px; line-height: 1.5; }
+.pad-wrap { background: white; border: 1.5px solid #B5D4F4; border-radius: 10px; position: relative; overflow: hidden; margin-bottom: 10px; }
+.pad-lbl { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; font-size: 13px; color: #ccc; pointer-events: none; line-height: 1.7; }
+canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor: crosshair; }
+.btn-clr { width: 100%; padding: 10px; border: 1.5px solid #ddd; border-radius: 10px; background: white; font-size: 13px; font-weight: 600; color: #555; cursor: pointer; font-family: inherit; }
+.cfm-row { display: flex; align-items: flex-start; gap: 12px; margin-top: 12px; padding: 13px; background: white; border-radius: 10px; border: 1.5px solid #ddd; cursor: pointer; }
+.cfm-row.on { border-color: #185FA5; background: #f0f7ff; }
+.cfm-row input[type=checkbox] { width: 22px; height: 22px; accent-color: #185FA5; margin-top: 1px; }
+.cfm-txt { font-size: 14px; color: #444; line-height: 1.5; }
+.cfm-txt strong { color: #185FA5; }
+.preview { background: white; border: 1px solid #e8e8e8; border-radius: 16px; padding: 16px 18px; display: none; margin-top: 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.preview.on { display: block; }
+.prev-ttl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #185FA5; margin-bottom: 12px; }
+.prev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pi .pk { font-size: 11px; color: #999; text-transform: uppercase; margin-bottom: 2px; }
+.pi .pv { font-size: 14px; color: #1a1a1a; font-weight: 600; }
+.btn-sub {
+  width: 100%; padding: 17px; background: #185FA5; border: none; border-radius: 16px;
+  font-size: 16px; font-weight: 700; color: white; cursor: pointer; margin-top: 10px; font-family: inherit;
+}
+.btn-sub:active { transform: scale(.98); }
+.sub-note { text-align: center; font-size: 12px; color: #999; margin-top: 10px; }
+.success { display: none; padding: 20px 16px 60px; text-align: center; max-width: 560px; margin: 0 auto; }
+.success.on { display: block; }
+.s-ring { width: 88px; height: 88px; border-radius: 50%; background: transparent; border: 2px solid #B5D4F4; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; padding: 8px; }
+.s-title { font-size: 22px; font-weight: 700; color: #0C447C; margin-bottom: 8px; }
+.s-sub { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px; }
+.s-summ { background: white; border: 1px solid #e8e8e8; border-radius: 16px; padding: 18px; text-align: left; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.s-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e8e8e8; font-size: 14px; }
+.s-row:last-child { border-bottom: none; }
+.s-row .sk { color: #999; } .s-row .sv { font-weight: 600; color: #1a1a1a; }
+.copy-box { background: #f0f7ff; border: 1.5px solid #B5D4F4; border-radius: 16px; padding: 16px; text-align: left; margin-bottom: 16px; }
+.copy-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #185FA5; margin-bottom: 9px; }
+.copy-txt { font-size: 11px; color: #444; line-height: 1.9; word-break: break-all; font-family: ui-monospace, monospace; }
+.btn-copy { margin-top: 10px; width: 100%; padding: 12px; background: white; border: 1.5px solid #ddd; border-radius: 10px; font-size: 13px; font-weight: 600; color: #555; cursor: pointer; font-family: inherit; }
+.btn-new { width: 100%; padding: 15px; background: #185FA5; border: none; border-radius: 16px; font-size: 15px; font-weight: 600; color: white; cursor: pointer; font-family: inherit; }
+.toast { position: fixed; bottom: 20px; left: 16px; right: 16px; background: #E24B4A; color: white; padding: 13px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; transform: translateY(100px); opacity: 0; transition: all .3s ease; z-index: 999; max-width: 528px; margin: 0 auto; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.card:focus-within { border-color: #185FA5; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.card { animation: up .28s ease both; }
+.card:nth-child(1){animation-delay:.03s}
+.card:nth-child(2){animation-delay:.07s}
+.card:nth-child(3){animation-delay:.11s}
+.card:nth-child(4){animation-delay:.15s}
+.card:nth-child(5){animation-delay:.19s}
+.card:nth-child(6){animation-delay:.23s}
+@keyframes up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+@keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+.s-ring { animation: pop .4s cubic-bezier(.34,1.56,.64,1); }
+"""
+
+SESSION_SCOPE_CSS = """
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:scope {
+  -webkit-text-size-adjust: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0efe9;
+  min-height: 100vh;
+  padding: 20px 16px 60px;
+  color: #1a1a1a;
+  font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
+}
+"""
+
+
+def prep_session_style(_raw: str, master: str) -> str:
+    return f"{SESSION_SCOPE_CSS}\n\n{master}\n\n{SESSION_COMPONENT_CSS}"
+
+
+def prep_session_body(body: str) -> str:
+    return re.sub(
+        r'<div class="hdr">[\s\S]*?\n\n<div class="prog">',
+        SESSION_HEADER_HTML.strip() + "\n\n<div class=\"prog\">",
+        body,
+        count=1,
+    )
+
 
 ob_style = extract_between(ONBOARD, "<style>", "</style>")
+MASTER_PANEL_CSS = extract_master_panel_css(ob_style)
+session_style_raw = extract_between(SESSION, "<style>", "</style>")
+session_scoped = (
+    "@scope (#session-panel) {\n"
+    + prep_session_style(session_style_raw, MASTER_PANEL_CSS)
+    + "\n}"
+)
 # Drop html rule; body -> :scope once
 ob_style = ob_style.replace("html { -webkit-text-size-adjust: 100%; }", "")
 ob_style = ob_style.replace(
@@ -55,55 +253,48 @@ ob_style = ob_style.replace(
 )
 ob_scoped = f"@scope (#onboard-panel) {{\n{ob_style}\n}}"
 
-session_body = extract_body_inner(SESSION)
+session_body = prep_session_body(extract_body_inner(SESSION))
 onboard_body = extract_body_inner(ONBOARD)
 
 APP_SHELL_CSS = """
-/* —— App shell (outside scoped panels) —— */
+/* —— App shell (onboarding master theme) —— */
 html { -webkit-text-size-adjust: 100%; }
 body.app-body {
   margin: 0;
   min-height: 100vh;
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #e8ecf1;
-  color: #0e1c2a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0efe9;
+  color: #1a1a1a;
+  font-size: 16px;
 }
 #session-panel, #onboard-panel { display: none; }
 #session-panel.active, #onboard-panel.active { display: block; }
 .calix-appbar {
   position: sticky; top: 0; z-index: 2000;
-  display: flex; gap: 8px; align-items: center; justify-content: center;
-  padding: 10px 12px 12px;
-  background: linear-gradient(180deg, #0e1c2a 0%, #1a3c5e 100%);
-  box-shadow: 0 4px 16px rgba(14,28,42,.18);
+  display: flex; align-items: center; justify-content: center;
+  padding: 10px 12px 0;
+  background: #f0efe9;
 }
 .calix-appbar-inner {
   display: flex; width: 100%; max-width: 560px; margin: 0 auto;
-  background: rgba(255,255,255,.1); border-radius: 12px; padding: 4px;
-  border: 1px solid rgba(255,255,255,.12);
+  background: white; border-radius: 12px; padding: 4px;
+  border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .calix-tab {
   flex: 1; border: none; border-radius: 9px; padding: 11px 8px;
   font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
-  background: transparent; color: rgba(255,255,255,.55);
+  background: transparent; color: #888;
   transition: color .15s, background .15s;
 }
 .calix-tab.active {
-  background: #fff; color: #1a3c5e;
-  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  background: #185FA5; color: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
-.calix-tab:focus-visible { outline: 2px solid #7ab8f5; outline-offset: 2px; }
-/* Shared brand images (usable inside scoped panels) */
-.calix-logo-full { max-width: min(280px, 92vw); height: auto; display: block; margin: 0 auto; }
+.calix-tab:focus-visible { outline: 2px solid #185FA5; outline-offset: 2px; }
+""" + SHARED_HEADER_CSS + """
+/* Shared brand images */
+.calix-logo-full { max-width: min(300px, 94vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
-.hdr-logo-wrap {
-  display: inline-flex; align-items: center; justify-content: center;
-  margin-bottom: 14px;
-}
-.hdr-logo-wrap .calix-logo-hdr {
-  height: 40px; width: auto; display: block;
-  filter: brightness(0) invert(1); opacity: .96;
-}
 .brand-success-logo {
   width: 72px; height: 72px; object-fit: contain; margin: 0 auto 16px; display: block;
 }
@@ -143,10 +334,10 @@ body.app-body {
   margin: 0 auto 12px; display: block;
 }
 .invoice-modal-sheet h2 {
-  font-size: 20px; font-weight: 700; color: #1a3c5e; margin: 0 0 8px;
+  font-size: 20px; font-weight: 700; color: #0C447C; margin: 0 0 8px;
 }
 .invoice-modal-sheet p {
-  font-size: 14px; line-height: 1.5; color: #3d5166; margin: 0 0 16px;
+  font-size: 14px; line-height: 1.5; color: #666; margin: 0 0 16px;
 }
 .invoice-modal-loading {
   font-size: 14px; color: #8098ae; margin-bottom: 14px;
@@ -154,7 +345,7 @@ body.app-body {
 }
 .invoice-modal-loading::before {
   content: ''; width: 22px; height: 22px;
-  border: 3px solid #e8f0f8; border-top-color: #1a3c5e;
+  border: 3px solid #e8f0f8; border-top-color: #185FA5;
   border-radius: 50%; animation: invSpin .7s linear infinite;
 }
 @keyframes invSpin { to { transform: rotate(360deg); } }
@@ -162,11 +353,11 @@ body.app-body {
   display: block; width: 100%;
   padding: 16px 20px; margin-bottom: 10px;
   border: none; border-radius: 14px;
-  font: 700 16px/1.2 'DM Sans', system-ui, sans-serif;
-  background: linear-gradient(135deg, #0e6b44, #1a3c5e);
+  font: 700 16px/1.2 inherit;
+  background: #185FA5;
   color: #fff; cursor: pointer;
   touch-action: manipulation;
-  box-shadow: 0 4px 14px rgba(14, 107, 68, 0.35);
+  box-shadow: 0 4px 14px rgba(24, 95, 165, 0.35);
 }
 .invoice-modal-download:disabled {
   background: #b0c4d8; box-shadow: none; cursor: not-allowed;
@@ -174,13 +365,13 @@ body.app-body {
 .invoice-modal-secondary {
   display: block; width: 100%; padding: 12px;
   border: none; background: transparent;
-  font: 600 14px 'DM Sans', system-ui, sans-serif;
-  color: #3d5166; cursor: pointer;
+  font: 600 14px inherit;
+  color: #666; cursor: pointer;
 }
 .invoice-modal-close {
   position: absolute; top: 12px; right: 14px;
   width: 36px; height: 36px; border: none; border-radius: 50%;
-  background: #f0f4f8; color: #3d5166; font-size: 20px; cursor: pointer;
+  background: #f0efe9; color: #666; font-size: 20px; cursor: pointer;
 }
 """
 
@@ -205,7 +396,7 @@ FAVICON_HEAD = """
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png"/>
 <link rel="manifest" href="site.webmanifest"/>
-<meta name="theme-color" content="#1a3c5e"/>
+<meta name="theme-color" content="#185FA5"/>
 """
 
 GAS_SCRIPTS = """
@@ -353,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (!u || /YOUR_DEPLOYMENT_ID|PASTE_|REPLACE_/i.test(u)) {
     var bar = document.createElement('div');
     bar.setAttribute('role', 'alert');
-    bar.style.cssText = 'background:#3d2a00;color:#ffd48a;padding:10px 14px;font:500 13px/1.4 DM Sans,sans-serif;text-align:center;border-bottom:1px solid #5c4200';
+    bar.style.cssText = 'background:#3d2a00;color:#ffd48a;padding:10px 14px;font:500 13px/1.4 inherit;text-align:center;border-bottom:1px solid #5c4200';
     bar.textContent = 'Onboarding saves are in local test mode. Set CALIXLAB_GAS_EXEC_URL in config.js (Apps Script /exec URL) for Google Sheets.';
     var appbar = document.querySelector('.calix-appbar');
     if (appbar && appbar.parentNode) appbar.parentNode.insertBefore(bar, appbar);
@@ -369,7 +560,6 @@ out = f"""<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Cali Lab — Trainer Hub</title>
 {FAVICON_HEAD}
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
 {APP_SHELL_CSS}
 </style>
