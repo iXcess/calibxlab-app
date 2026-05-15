@@ -2528,6 +2528,8 @@ function resetForm(mode) {
     document.getElementById('waiverDate').textContent = new Date().toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'});
   } else {
     document.getElementById('rpSuccessCard').classList.remove('show');
+    var rpInv = document.getElementById('rpInvoiceMsg');
+    if (rpInv) rpInv.textContent = '';
     document.getElementById('recordPayForm').classList.remove('hidden');
     document.getElementById('rpSubmitBtn').disabled = false;
     document.getElementById('rpClientSearch').value = '';
