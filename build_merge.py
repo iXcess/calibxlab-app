@@ -66,8 +66,9 @@ SESSION_COMPONENT_CSS = """
 .hint { font-size: 12px; color: #999; margin-top: 7px; line-height: 1.5; }
 .ferr { font-size: 12px; color: #E24B4A; margin-top: 6px; font-weight: 500; display: none; }
 .prog {
+  width: 100%; max-width: 560px; box-sizing: border-box;
   background: white; border: 1px solid #e8e8e8; border-radius: 16px;
-  padding: 14px 20px; max-width: 560px; margin: 0 auto 14px;
+  padding: 14px 20px; margin: 0 auto 14px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .prog-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
@@ -75,7 +76,16 @@ SESSION_COMPONENT_CSS = """
 .prog-frac { font-size: 13px; color: #999; }
 .prog-bar { height: 4px; background: #e8e8e8; border-radius: 2px; overflow: hidden; }
 .prog-fill { height: 100%; background: #185FA5; border-radius: 2px; transition: width .4s ease; }
-.body { padding: 0; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.body {
+  width: 100%; max-width: 560px; margin: 0 auto;
+  padding: 0; display: flex; flex-direction: column; gap: 14px; align-items: stretch;
+}
+.session-stack {
+  width: 100%; max-width: 560px; margin: 0 auto;
+  display: flex; flex-direction: column; gap: 14px; align-items: stretch;
+}
+.card { width: 100%; box-sizing: border-box; margin-bottom: 0; }
+.body > .card { margin-bottom: 0; }
 .card.err-card { border-color: #E24B4A !important; }
 .sw { position: relative; }
 .sw::after {
@@ -155,7 +165,10 @@ SESSION_COMPONENT_CSS = """
 .cb { width: 54px; height: 52px; border: none; background: transparent; font-size: 22px; color: #555; cursor: pointer; }
 .cv { flex: 1; text-align: center; font-size: 26px; font-weight: 700; border: none; background: transparent; outline: none; color: #1a1a1a; }
 .ctr.on .cv { color: #185FA5; }
-.sign-card { background: #f0f7ff; border: 2px solid #B5D4F4; border-radius: 16px; padding: 18px; }
+.sign-card {
+  width: 100%; max-width: 560px; box-sizing: border-box; margin-left: auto; margin-right: auto;
+  background: #f0f7ff; border: 2px solid #B5D4F4; border-radius: 16px; padding: 18px;
+}
 .sign-ttl { font-size: 15px; font-weight: 700; color: #185FA5; margin-bottom: 3px; }
 .sign-sub { font-size: 12px; color: #666; margin-bottom: 14px; line-height: 1.5; }
 .pad-wrap { background: white; border: 1.5px solid #B5D4F4; border-radius: 10px; position: relative; overflow: hidden; margin-bottom: 10px; }
@@ -167,7 +180,11 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 .cfm-row input[type=checkbox] { width: 22px; height: 22px; accent-color: #185FA5; margin-top: 1px; }
 .cfm-txt { font-size: 14px; color: #444; line-height: 1.5; }
 .cfm-txt strong { color: #185FA5; }
-.preview { background: white; border: 1px solid #e8e8e8; border-radius: 16px; padding: 16px 18px; display: none; margin-top: 2px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.preview {
+  width: 100%; max-width: 560px; box-sizing: border-box; margin-left: auto; margin-right: auto;
+  background: white; border: 1px solid #e8e8e8; border-radius: 16px; padding: 16px 18px;
+  display: none; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
 .preview.on { display: block; }
 .prev-ttl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #185FA5; margin-bottom: 12px; }
 .prev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -228,11 +245,16 @@ def prep_session_style(_raw: str, master: str) -> str:
 
 
 def prep_session_body(body: str) -> str:
-    return re.sub(
+    body = re.sub(
         r'<div class="hdr">[\s\S]*?\n\n<div class="prog">',
         SESSION_HEADER_HTML.strip() + "\n\n<div class=\"prog\">",
         body,
         count=1,
+    )
+    return body.replace(
+        '<div style="padding:0 16px;max-width:560px;margin:0 auto;">',
+        '<div class="session-stack">',
+        1,
     )
 
 
