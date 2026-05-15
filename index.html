@@ -177,7 +177,10 @@ body.app-body {
   background-image:radial-gradient(circle, rgba(255,255,255,.07) 1px, transparent 1px);
   background-size:24px 24px;
 }
-.hdr-inner { position:relative; z-index:1; }
+.hdr-inner {
+  position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+}
 .hdr-logo-wrap { display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px; }
 .hdr-logo-wrap .calix-logo-hdr { height:40px; width:auto; display:block; filter:brightness(0) invert(1); opacity:.96; }
 .hdr-brand { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:10px; }
