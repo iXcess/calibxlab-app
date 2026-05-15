@@ -213,11 +213,20 @@ function recordSessionLog(data) {
   ensureSessionLogHeaderRow_(sheet);
   var sigName = '';
   if (RECEIPTS_FOLDER_ID && data.signatureBase64) {
-    var sigFile = (data.signatureFileName || (sanitizeFileStem_(data.client) + '-session-signature.jpg'));
-    sigName = saveBase64File_(
-      data.signatureBase64, sigFile, data.signatureMimeType || 'image/jpeg',
-      (data.client || 'Client') + ' session signature', FOLDER_SESSION_SIGNATURES
-    );
+    sigName = saveBase64File_(data.signatureBase64, data.signatureMimeType || 'image/jpeg', {
+      subfolder: FOLDER_SESSION_SIGNATURES,
+      kind: 'session-signature',
+      category: 'Session Log',
+      clientName: data.client,
+      originalFileName: data.signatureFileName,
+      details: {
+        Trainer: data.trainer,
+        'Session date': data.sessionDate,
+        'Session type': data.sessionType,
+        'Session #': data.sessionNumber,
+        'Lead source': data.leadSource
+      }
+    });
   }
   var row = [
     new Date(),
@@ -386,17 +395,34 @@ function onboardClient(data) {
   var receiptName = '';
   var sigName = '';
   if (RECEIPTS_FOLDER_ID && data.receiptBase64) {
-    receiptName = saveBase64File_(
-      data.receiptBase64, data.receiptFileName, data.receiptMimeType,
-      data.fullName + ' receipt', FOLDER_ONBOARDING_RECEIPTS
-    );
+    receiptName = saveBase64File_(data.receiptBase64, data.receiptMimeType, {
+      subfolder: FOLDER_ONBOARDING_RECEIPTS,
+      kind: 'onboarding-receipt',
+      category: 'Onboarding',
+      clientName: data.fullName,
+      originalFileName: data.receiptFileName,
+      details: {
+        Trainer: data.trainerName,
+        'Package': data.packageType,
+        'Sessions': data.sessions,
+        'Amount paid': data.amountPaid,
+        'Payment mode': data.paymentMode
+      }
+    });
     folderUrl = 'https://drive.google.com/drive/folders/' + RECEIPTS_FOLDER_ID;
   }
   if (RECEIPTS_FOLDER_ID && data.signatureBase64) {
-    sigName = saveBase64File_(
-      data.signatureBase64, data.fullName + '-signature.jpg', data.signatureMimeType || 'image/jpeg',
-      data.fullName + ' waiver signature', FOLDER_ONBOARDING_SIGNATURES
-    );
+    sigName = saveBase64File_(data.signatureBase64, data.signatureMimeType || 'image/jpeg', {
+      subfolder: FOLDER_ONBOARDING_SIGNATURES,
+      kind: 'waiver-signature',
+      category: 'Onboarding',
+      clientName: data.fullName,
+      originalFileName: data.fullName + '-signature.jpg',
+      details: {
+        Trainer: data.trainerName,
+        'Waiver date': data.waiverDate
+      }
+    });
   }
   var row = [
     new Date(),
@@ -434,10 +460,19 @@ function recordPayment(data) {
     recordedAt: new Date().toISOString()
   };
   if (data.receiptBase64 && RECEIPTS_FOLDER_ID) {
-    entry.receiptFile = saveBase64File_(
-      data.receiptBase64, data.receiptFileName, data.receiptMimeType,
-      data.clientName + ' payment ' + data.paymentDate, FOLDER_PAYMENT_RECEIPTS
-    );
+    entry.receiptFile = saveBase64File_(data.receiptBase64, data.receiptMimeType, {
+      subfolder: FOLDER_PAYMENT_RECEIPTS,
+      kind: 'payment-receipt',
+      category: 'Record payment',
+      clientName: data.clientName,
+      originalFileName: data.receiptFileName,
+      details: {
+        'Payment amount': data.paymentAmount,
+        'Payment date': data.paymentDate,
+        'Payment method': data.paymentMethod,
+        Notes: data.notes || ''
+      }
+    });
   }
   additional.push(entry);
   sheet.getRange(rowIndex, 24).setValue(JSON.stringify(additional));
@@ -451,6 +486,58 @@ function sanitizeFileStem_(name) {
   return String(name || 'client').replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').slice(0, 60) || 'client';
 }
 
+function formatDriveTimestamp_(d) {
+  var when = d instanceof Date ? d : new Date();
+  return Utilities.formatDate(when, Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss');
+}
+
+function formatDriveTimestampHuman_(d) {
+  var when = d instanceof Date ? d : new Date();
+  return Utilities.formatDate(when, Session.getScriptTimeZone(), 'dd MMM yyyy, HH:mm:ss');
+}
+
+function extensionFromMimeOrName_(mimeType, originalFileName) {
+  var name = String(originalFileName || '');
+  var dot = name.lastIndexOf('.');
+  if (dot > 0 && dot < name.length - 1) {
+    return name.slice(dot).toLowerCase();
+  }
+  var mime = String(mimeType || '').toLowerCase();
+  if (mime.indexOf('jpeg') >= 0 || mime.indexOf('jpg') >= 0) return '.jpg';
+  if (mime.indexOf('png') >= 0) return '.png';
+  if (mime.indexOf('pdf') >= 0) return '.pdf';
+  if (mime.indexOf('webp') >= 0) return '.webp';
+  return '.bin';
+}
+
+/**
+ * meta: { kind, clientName, category, subfolder, originalFileName, details: {key: value} }
+ */
+function buildDriveFileName_(meta, mimeType, uploadedAt) {
+  var ts = formatDriveTimestamp_(uploadedAt);
+  var kind = sanitizeFileStem_(meta.kind || 'upload');
+  var client = sanitizeFileStem_(meta.clientName || 'client');
+  var ext = extensionFromMimeOrName_(mimeType, meta.originalFileName);
+  return ts + '_' + kind + '_' + client + ext;
+}
+
+function buildDriveDescription_(meta, uploadedAt) {
+  var lines = [
+    'Calixlab Trainer Hub upload',
+    'Uploaded: ' + formatDriveTimestampHuman_(uploadedAt) + ' (' + Session.getScriptTimeZone() + ')'
+  ];
+  if (meta.category) lines.push('Category: ' + meta.category);
+  if (meta.kind) lines.push('File type: ' + meta.kind);
+  if (meta.clientName) lines.push('Client: ' + meta.clientName);
+  if (meta.originalFileName) lines.push('Original filename: ' + meta.originalFileName);
+  var details = meta.details || {};
+  Object.keys(details).forEach(function (key) {
+    var val = details[key];
+    if (val !== '' && val != null) lines.push(key + ': ' + val);
+  });
+  return lines.join('\n');
+}
+
 function getUploadSubfolder_(subfolderName) {
   var parent = DriveApp.getFolderById(RECEIPTS_FOLDER_ID);
   var it = parent.getFoldersByName(subfolderName);
@@ -458,7 +545,18 @@ function getUploadSubfolder_(subfolderName) {
   return parent.createFolder(subfolderName);
 }
 
-function saveBase64File_(base64, fileName, mimeType, description, subfolderName) {
+function saveDriveBlob_(blob, meta) {
+  if (!RECEIPTS_FOLDER_ID) return { fileName: blob.getName(), url: '', fileId: '' };
+  var uploadedAt = meta.uploadedAt || new Date();
+  var driveName = buildDriveFileName_(meta, blob.getContentType(), uploadedAt);
+  blob.setName(driveName);
+  var folder = meta.subfolder ? getUploadSubfolder_(meta.subfolder) : DriveApp.getFolderById(RECEIPTS_FOLDER_ID);
+  var file = folder.createFile(blob);
+  file.setDescription(buildDriveDescription_(meta, uploadedAt));
+  return { fileName: file.getName(), url: file.getUrl(), fileId: file.getId() };
+}
+
+function saveBase64File_(base64, mimeType, meta) {
   if (!RECEIPTS_FOLDER_ID) return '';
   var raw = String(base64 || '');
   var comma = raw.indexOf(',');
@@ -466,10 +564,7 @@ function saveBase64File_(base64, fileName, mimeType, description, subfolderName)
   var blob = Utilities.newBlob(
     Utilities.base64Decode(raw),
     mimeType || 'application/octet-stream',
-    fileName || 'upload'
+    meta.originalFileName || 'upload'
   );
-  var folder = subfolderName ? getUploadSubfolder_(subfolderName) : DriveApp.getFolderById(RECEIPTS_FOLDER_ID);
-  var file = folder.createFile(blob);
-  file.setDescription(description || '');
-  return file.getName();
+  return saveDriveBlob_(blob, meta).fileName;
 }

@@ -11,7 +11,8 @@ const ACTIVE_TARGET = 'production';
 const RECEIPTS_FOLDER_ID = '1GcB2_GwLoE9cosyJPyoIOL5WCjUBZBt5';
 ```
 
-Drive uploads use subfolders under that parent (created on first upload):
+Drive uploads use subfolders under that parent (created on first upload). Each file is saved with a **timestamped name** (e.g. `20260515-223045_onboarding-receipt_Client-Name.jpg`) and a **multi-line description** (upload time, client, category, and context — not just the original phone filename):
+
 
 - `onboarding-receipts`
 - `onboarding-signatures`

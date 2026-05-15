@@ -232,14 +232,24 @@ function htmlToPdfBlob_(html, fileName) {
   return blob;
 }
 
-function saveInvoicePdfToDrive_(blob, invoiceNumber, clientName) {
-  if (!RECEIPTS_FOLDER_ID) return { fileName: blob.getName(), url: '' };
-  var folder = getUploadSubfolder_(FOLDER_INVOICES);
-  var safe = sanitizeFileStem_(clientName);
-  var name = invoiceNumber + '-' + safe + '.pdf';
-  blob.setName(name);
-  var file = folder.createFile(blob);
-  return { fileName: file.getName(), url: file.getUrl(), fileId: file.getId() };
+function saveInvoicePdfToDrive_(blob, invoiceNumber, clientName, invoiceMeta) {
+  if (!RECEIPTS_FOLDER_ID) return { fileName: blob.getName(), url: '', fileId: '' };
+  invoiceMeta = invoiceMeta || {};
+  var details = {
+    'Invoice number': invoiceNumber,
+    'Invoice type': invoiceMeta.type || 'onboarding'
+  };
+  if (invoiceMeta.paymentAmount != null) {
+    details['Payment amount'] = invoiceMeta.paymentAmount;
+  }
+  return saveDriveBlob_(blob, {
+    subfolder: FOLDER_INVOICES,
+    kind: 'invoice',
+    category: 'Invoice',
+    clientName: clientName,
+    originalFileName: invoiceNumber + '.pdf',
+    details: details
+  });
 }
 
 function logInvoice_(model, driveInfo) {
@@ -304,7 +314,10 @@ function generateInvoice(payload) {
   result.pdfBase64 = Utilities.base64Encode(pdfBlob.getBytes());
 
   if (payload.saveToDrive !== false && RECEIPTS_FOLDER_ID) {
-    var driveInfo = saveInvoicePdfToDrive_(pdfBlob, model.invoiceNumber, model.billName);
+    var driveInfo = saveInvoicePdfToDrive_(pdfBlob, model.invoiceNumber, model.billName, {
+      type: model.meta.type,
+      paymentAmount: model.meta.type === 'payment' ? model.meta.paid : null
+    });
     result.driveUrl = driveInfo.url;
     result.driveFileName = driveInfo.fileName;
     logInvoice_(model, driveInfo);
