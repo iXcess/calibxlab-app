@@ -1459,7 +1459,7 @@ function doCopy(){
     <div class="field">
       <label>Assigned Trainer <span class="req">*</span></label>
       <div class="trainer-select-row">
-        <select id="trainerSelect" onchange="document.getElementById('trainerNameHidden').value=this.value">
+        <select id="trainerSelect" onchange="syncTrainerFromSelect()">
           <option value="">— Select Trainer —</option>
         </select>
         <button type="button" class="icon-btn add-btn" onclick="togglePanel('addTrainerPanel','deleteTrainerPanel')">+</button>
@@ -2334,8 +2334,17 @@ function showRecordPayPanel(r) {
 // HELPERS
 // ══════════════════════════════════════
 function getVal(id)  { return document.getElementById(id).value.trim(); }
-function getPill(g)  { var a=document.querySelector('[data-group="'+g+'"].active'); return a?a.dataset.val:''; }
+function getPill(g)  {
+  var root = document.getElementById('onboard-panel') || document;
+  var a = root.querySelector('[data-group="'+g+'"].active');
+  return a ? a.dataset.val : '';
+}
 function getChips(g) { return Array.from(document.querySelectorAll('#'+g+' .chip-btn.active')).map(function(b){return b.dataset.val;}).join(', '); }
+function syncTrainerFromSelect() {
+  var sel = document.getElementById('trainerSelect');
+  var hid = document.getElementById('trainerNameHidden');
+  if (sel && hid) hid.value = sel.value || '';
+}
 function setProgress(msg) { document.getElementById('progressMsg').textContent=msg; document.getElementById('progressOverlay').classList.add('show'); }
 function hideProgress() { document.getElementById('progressOverlay').classList.remove('show'); }
 
@@ -2343,21 +2352,43 @@ function hideProgress() { document.getElementById('progressOverlay').classList.r
 // SUBMIT — NEW CLIENT
 // ══════════════════════════════════════
 function submitForm() {
+  syncTrainerFromSelect();
   var isInstalment = getPill('instalmentPlan') === 'Yes';
   var required = ['fullName','phone','email','ic','emergencyContact','emergencyPhone','startDate','sessions','ratePerSession'];
-  if (isInstalment) required.push('firstPayment','firstPaymentDate','instalmentAmount');
+  if (isInstalment) required.push('firstPayment','firstPaymentDate','instalmentAmount','totalInstalments');
   else required.push('amountPaidFull');
-  var missing      = required.filter(function(id){ return !getVal(id); });
-  var trainerOk    = !!getVal('trainerNameHidden');
+  var fieldLabels = {
+    fullName: 'Full name', phone: 'Phone number', email: 'Email', ic: 'IC / Passport',
+    emergencyContact: 'Emergency contact name', emergencyPhone: 'Emergency contact phone',
+    startDate: 'Start date', sessions: 'Number of sessions', ratePerSession: 'Rate per session',
+    amountPaidFull: 'Amount paid', firstPayment: '1st payment amount',
+    firstPaymentDate: '1st payment date', instalmentAmount: 'Per instalment (RM)',
+    totalInstalments: 'Total instalments'
+  };
+  var pillLabels = {
+    fitnessLevel: 'Fitness level', leadType: 'Lead type',
+    packageType: 'Package type', paymentMode: 'Payment method'
+  };
+  var missing = required.filter(function(id){ return !getVal(id); });
   var missingPills = ['fitnessLevel','leadType','packageType','paymentMode'].filter(function(g){ return !getPill(g); });
-  var goalsOk      = document.querySelectorAll('#grp-fitnessGoals .chip-btn.active').length > 0;
-  var sourceOk     = document.querySelectorAll('#grp-source .chip-btn.active').length > 0;
+  var goalsOk = document.querySelectorAll('#grp-fitnessGoals .chip-btn.active').length > 0;
+  var sourceOk = document.querySelectorAll('#grp-source .chip-btn.active').length > 0;
   var errors = [];
-  if (missing.length || missingPills.length || !trainerOk || !goalsOk) errors.push('Complete all required fields.');
-  if (!sourceOk)       errors.push('Select how the client found us.');
+  missing.forEach(function(id) {
+    errors.push('Missing: ' + (fieldLabels[id] || id));
+  });
+  missingPills.forEach(function(g) {
+    errors.push('Missing: ' + (pillLabels[g] || g));
+  });
+  if (!getVal('trainerNameHidden')) errors.push('Missing: Assigned trainer');
+  if (!goalsOk) errors.push('Missing: Fitness goals (tap at least one)');
+  if (!sourceOk) errors.push('Missing: How did you find us?');
+  if (getPill('paymentMode') === 'Others' && !getVal('paymentOthers')) {
+    errors.push('Missing: Payment method details (Others)');
+  }
   if (!receiptFileData) errors.push('Upload the payment receipt.');
-  if (!waiverRead)     errors.push('Confirm you have read the liability waiver.');
-  if (!hasSig)         errors.push('Client signature is required.');
+  if (!waiverRead) errors.push('Confirm you have read the liability waiver.');
+  if (!hasSig) errors.push('Client signature is required.');
   if (errors.length) {
     var b = document.getElementById('error-banner');
     b.innerHTML = errors.map(function(e){ return '• '+e; }).join('<br>');

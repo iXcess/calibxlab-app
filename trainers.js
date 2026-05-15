@@ -39,8 +39,15 @@
 
   global.calixlabRefreshTrainerDropdowns = function () {
     return global.calixlabGetTrainers(true).then(function (names) {
+      var hid = document.getElementById('trainerNameHidden');
+      var cur = (hid && hid.value) || '';
       fillSelect(document.getElementById('trainerSelect'), names, '— Select Trainer —');
       fillSelect(document.getElementById('trainerSel'), names, '— Select your name —');
+      if (cur) {
+        var sel = document.getElementById('trainerSelect');
+        if (sel) sel.value = cur;
+        if (hid) hid.value = cur;
+      }
       if (typeof global.calixlabOnTrainersLoaded === 'function') {
         global.calixlabOnTrainersLoaded(names);
       }
