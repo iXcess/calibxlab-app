@@ -16,6 +16,7 @@ function runApiAction_(action, payload) {
   if (action === 'listTrainers') return listTrainers();
   if (action === 'addTrainer') return addTrainer(payload || {});
   if (action === 'deleteTrainer') return deleteTrainer(payload || {});
+  if (action === 'getPayrollSummary') return getPayrollSummary(payload || {});
   if (action === 'onboardClient') return onboardClient(payload || {});
   if (action === 'recordPayment') return recordPayment(payload || {});
   if (action === 'recordSessionLog') return recordSessionLog(payload || {});
@@ -27,6 +28,12 @@ function runApiAction_(action, payload) {
 function parseApiPayload_(action, p) {
   if (action === 'lookupClient') {
     return p.q != null ? p.q : (p.payload || '');
+  }
+  if (action === 'getPayrollSummary') {
+    return {
+      startDate: p.startDate != null ? p.startDate : '',
+      endDate: p.endDate != null ? p.endDate : ''
+    };
   }
   var raw = p.payload;
   if (raw == null || raw === '') return {};
@@ -192,6 +199,130 @@ function deleteTrainer(payload) {
     }
   }
   throw new Error('Trainer not found: ' + name);
+}
+
+function parseIsoDate_(s) {
+  var parts = String(s || '').trim().split('-');
+  if (parts.length !== 3) throw new Error('Invalid date. Use YYYY-MM-DD.');
+  var y = parseInt(parts[0], 10);
+  var m = parseInt(parts[1], 10) - 1;
+  var d = parseInt(parts[2], 10);
+  var dt = new Date(y, m, d);
+  if (isNaN(dt.getTime())) throw new Error('Invalid date: ' + s);
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+
+function sessionDateInRange_(sessionDateVal, startDt, endDt) {
+  if (!sessionDateVal) return false;
+  var sd;
+  if (sessionDateVal instanceof Date) {
+    sd = new Date(sessionDateVal.getTime());
+  } else {
+    sd = new Date(sessionDateVal);
+  }
+  if (isNaN(sd.getTime())) return false;
+  sd.setHours(0, 0, 0, 0);
+  return sd.getTime() >= startDt.getTime() && sd.getTime() <= endDt.getTime();
+}
+
+function leadMultiplierFromSessionRow_(multVal, leadSource) {
+  var m = parseFloat(multVal);
+  if (!isNaN(m) && m > 0) return m;
+  var lead = String(leadSource || '').trim().toLowerCase();
+  if (lead.indexOf('calix') >= 0) return 0.6;
+  return 0.7;
+}
+
+function buildClientRateMap_() {
+  var sheet = getClientSheet_();
+  var data = sheet.getDataRange().getValues();
+  var map = {};
+  for (var r = 1; r < data.length; r++) {
+    var rate = parseFloat(data[r][14]);
+    if (isNaN(rate)) rate = 0;
+    map[r + 1] = rate;
+  }
+  return map;
+}
+
+function getPayrollSummary(payload) {
+  var startDate = String((payload && payload.startDate) || '').trim();
+  var endDate = String((payload && payload.endDate) || '').trim();
+  if (!startDate || !endDate) throw new Error('startDate and endDate are required (YYYY-MM-DD).');
+  var startDt = parseIsoDate_(startDate);
+  var endDt = parseIsoDate_(endDate);
+  if (startDt.getTime() > endDt.getTime()) throw new Error('startDate must be on or before endDate.');
+
+  var rateMap = buildClientRateMap_();
+  var byTrainer = {};
+  var grandSessions = 0;
+  var grandEarnings = 0;
+
+  var logSheet = getSessionLogSheet_();
+  if (logSheet.getLastRow() >= 2) {
+    var logData = logSheet.getDataRange().getValues();
+    for (var i = 1; i < logData.length; i++) {
+      var row = logData[i];
+      if (!sessionDateInRange_(row[1], startDt, endDt)) continue;
+      var trainer = String(row[2] || '').trim();
+      if (!trainer) continue;
+      var clientRow = parseInt(row[9], 10);
+      var rate = (!isNaN(clientRow) && rateMap[clientRow] != null) ? rateMap[clientRow] : 0;
+      if (!rate && row[3]) {
+        var clientName = String(row[3] || '').trim().toLowerCase();
+        var clientSheet = getClientSheet_();
+        var clientData = clientSheet.getDataRange().getValues();
+        for (var cr = 1; cr < clientData.length; cr++) {
+          if (String(clientData[cr][1] || '').trim().toLowerCase() === clientName) {
+            rate = parseFloat(clientData[cr][14]) || 0;
+            break;
+          }
+        }
+      }
+      var mult = leadMultiplierFromSessionRow_(row[6], row[5]);
+      var earning = rate * mult;
+      if (!byTrainer[trainer]) {
+        byTrainer[trainer] = { name: trainer, sessionCount: 0, totalEarnings: 0, sessions: [] };
+      }
+      byTrainer[trainer].sessionCount += 1;
+      byTrainer[trainer].totalEarnings += earning;
+      byTrainer[trainer].sessions.push({
+        date: row[1] instanceof Date
+          ? Utilities.formatDate(row[1], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+          : String(row[1] || ''),
+        client: String(row[3] || ''),
+        sessionType: String(row[4] || ''),
+        rate: rate,
+        multiplier: mult,
+        earning: Math.round(earning * 100) / 100
+      });
+      grandSessions += 1;
+      grandEarnings += earning;
+    }
+  }
+
+  var trainers = listTrainers();
+  var result = trainers.map(function (name) {
+    var t = byTrainer[name];
+    if (t) {
+      t.totalEarnings = Math.round(t.totalEarnings * 100) / 100;
+      return t;
+    }
+    return { name: name, sessionCount: 0, totalEarnings: 0, sessions: [] };
+  });
+  result.sort(function (a, b) {
+    if (b.totalEarnings !== a.totalEarnings) return b.totalEarnings - a.totalEarnings;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+
+  return {
+    startDate: startDate,
+    endDate: endDate,
+    grandTotalSessions: grandSessions,
+    grandTotalEarnings: Math.round(grandEarnings * 100) / 100,
+    trainers: result
+  };
 }
 
 // ── Session Log tab ─────────────────────────────────────────────────────────

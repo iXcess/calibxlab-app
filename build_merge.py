@@ -274,6 +274,8 @@ ob_style = ob_style.replace(
     1,
 )
 from hub_merge import (
+    ADMIN_JS,
+    ADMIN_PANEL_HTML,
     HUB_APP_SHELL_CSS,
     HUB_JS,
     HUB_NAV_HTML,
@@ -511,6 +513,22 @@ STUB_JS = """
         self._ok({ ok: true, name: n });
       }, 80);
     },
+    getPayrollSummary: function (data) {
+      var self = this;
+      setTimeout(function () {
+        self._ok({
+          startDate: (data && data.startDate) || '',
+          endDate: (data && data.endDate) || '',
+          grandTotalSessions: 4,
+          grandTotalEarnings: 720,
+          trainers: [
+            { name: 'Alex', sessionCount: 3, totalEarnings: 540, sessions: [] },
+            { name: 'Sarah', sessionCount: 1, totalEarnings: 180, sessions: [] }
+          ],
+          local: true
+        });
+      }, 120);
+    },
     recordSessionLog: function (data) {
       var self = this;
       setTimeout(function () {
@@ -577,11 +595,12 @@ out = f"""<!DOCTYPE html>
 </div>
 
 <div id="view-admin" class="hub-view">
-  <div class="hub-admin-placeholder">Admin tools coming soon.</div>
+{ADMIN_PANEL_HTML}
 </div>
 
 {onboard_scripts}
 {HUB_JS}
+{ADMIN_JS}
 {GAS_SCRIPTS}
 {STUB_JS}
 </body>

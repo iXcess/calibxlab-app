@@ -65,7 +65,8 @@ clasp deploy
 | `recordSessionLog` | POST | Session signature → Drive |
 | `generateInvoice` | POST | PDF invoice → Drive `invoices/` subfolder |
 | `previewInvoiceHtml` | POST | HTML preview only |
-| `addTrainer` / `deleteTrainer` | POST | |
+| `addTrainer` / `deleteTrainer` | POST | Trainer tab |
+| `getPayrollSummary` | GET | Query `startDate`, `endDate` (YYYY-MM-DD) |
 
 ## Invoices
 

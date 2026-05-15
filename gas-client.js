@@ -51,6 +51,14 @@
       return callGasGet(url, 'action=listTrainers');
     }
 
+    if (action === 'getPayrollSummary') {
+      var p = payload || {};
+      var q = 'action=getPayrollSummary'
+        + '&startDate=' + encodeURIComponent(String(p.startDate || ''))
+        + '&endDate=' + encodeURIComponent(String(p.endDate || ''));
+      return callGasGet(url, q);
+    }
+
     return callGasPost(url, action, payload);
   }
 
@@ -67,7 +75,7 @@
       }
     };
 
-    ['lookupClient', 'listTrainers', 'addTrainer', 'deleteTrainer', 'onboardClient', 'recordPayment', 'recordSessionLog', 'generateInvoice', 'previewInvoiceHtml'].forEach(function (action) {
+    ['lookupClient', 'listTrainers', 'addTrainer', 'deleteTrainer', 'getPayrollSummary', 'onboardClient', 'recordPayment', 'recordSessionLog', 'generateInvoice', 'previewInvoiceHtml'].forEach(function (action) {
       runner[action] = function (arg) {
         callGas(action, arg)
           .then(function (result) {
