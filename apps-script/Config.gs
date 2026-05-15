@@ -24,5 +24,8 @@ const ACTIVE_TARGET = 'production';
 /** Tab listing trainers (column A: name; row 1 header optional). */
 const TRAINER_SHEET_NAME = 'Trainer';
 
+/** Tab for Session Log form submissions. */
+const SESSION_LOG_SHEET_NAME = 'Session Log';
+
 /** Optional Drive folder ID for receipts & signatures (empty = skip uploads). */
 const RECEIPTS_FOLDER_ID = '';

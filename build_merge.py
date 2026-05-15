@@ -194,6 +194,13 @@ STUB_JS = """
         saveTrainersLocal(loadTrainers().filter(function (t) { return t !== n; }));
         self._ok({ ok: true, name: n });
       }, 80);
+    },
+    recordSessionLog: function (data) {
+      var self = this;
+      setTimeout(function () {
+        saveLog({ type: 'session', at: new Date().toISOString(), data: data });
+        self._ok({ rowIndex: 2, local: true });
+      }, 200);
     }
   };
   window.google = { script: { run: run } };

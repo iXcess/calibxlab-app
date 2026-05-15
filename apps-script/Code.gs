@@ -18,6 +18,7 @@ function runApiAction_(action, payload) {
   if (action === 'deleteTrainer') return deleteTrainer(payload || {});
   if (action === 'onboardClient') return onboardClient(payload || {});
   if (action === 'recordPayment') return recordPayment(payload || {});
+  if (action === 'recordSessionLog') return recordSessionLog(payload || {});
   throw new Error('Unknown action: ' + action);
 }
 
@@ -171,6 +172,50 @@ function deleteTrainer(payload) {
     }
   }
   throw new Error('Trainer not found: ' + name);
+}
+
+// ── Session Log tab ─────────────────────────────────────────────────────────
+var SESSION_LOG_HEADERS = [
+  'Timestamp', 'Session Date', 'Trainer', 'Client', 'Session Type',
+  'Lead Source', 'Lead Multiplier', 'Session Number', 'Client Confirmed',
+  'Client Sheet Row', 'Package Info'
+];
+
+function getSessionLogSheet_() {
+  var ss = getSubmissionSpreadsheet_();
+  var sheet = ss.getSheetByName(SESSION_LOG_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(SESSION_LOG_SHEET_NAME);
+  }
+  return sheet;
+}
+
+function ensureSessionLogHeaderRow_(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, SESSION_LOG_HEADERS.length).setValues([SESSION_LOG_HEADERS]);
+    sheet.getRange(1, 1, 1, SESSION_LOG_HEADERS.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+}
+
+function recordSessionLog(data) {
+  var sheet = getSessionLogSheet_();
+  ensureSessionLogHeaderRow_(sheet);
+  var row = [
+    new Date(),
+    data.sessionDate || '',
+    data.trainer || '',
+    data.client || '',
+    data.sessionType || '',
+    data.leadSource || '',
+    data.leadMultiplier || '',
+    parseInt(data.sessionNumber, 10) || data.sessionNumber || '',
+    data.clientConfirmed ? 'Yes' : 'No',
+    data.clientSheetRow || '',
+    data.packageInfo || ''
+  ];
+  sheet.appendRow(row);
+  return { rowIndex: sheet.getLastRow() };
 }
 
 // ── Column headers (row 1) — must match your new sheet ─────────────────────

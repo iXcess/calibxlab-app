@@ -1126,38 +1126,81 @@ function showE(id,cid){document.getElementById(id).style.display='block';if(cid)
 function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
 // ── SUBMIT ────────────────────────────────────────
-function doSubmit(){
-  clearErr(); sync();
-  const t2=document.getElementById('clientIn').value.trim();
-  if(t2) S.client=t2;
-  let ok=true;
-  if(!S.trainer){showE('er1','c1');ok=false;}
-  if(!S.client) {showE('er2','c2');ok=false;}
-  if(!S.date)   {showE('er3','c3');ok=false;}
-  if(!S.type)   {showE('er4','c4');ok=false;}
-  if(!S.lead)   {showE('er5','c5');ok=false;} // pick client from sheet list to auto-fill lead
-  if(!S.no||S.no<1){showE('er6','c6');ok=false;}
-  if(!S.signed||!S.confirmed){document.getElementById('er7').style.display='block';ok=false;}
-  if(!ok){toast('⚠️ Please complete all required fields');window.scrollTo({top:0,behavior:'smooth'});return;}
-
-  const now=new Date(), ts=now.toLocaleString('en-MY');
-  const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'});
-  const mult=S.lead==='Calixlab'?'0.60':'0.70';
-
-  document.getElementById('mainForm').style.display='none';
+function showSessionSuccess_(ts, fmtDate, mult) {
+  document.getElementById('mainForm').style.display = 'none';
   document.getElementById('successScr').classList.add('on');
-
-  const rows=[['Timestamp',ts],['Trainer',S.trainer],['Client',S.client],
-    ['Date',fmt(S.date)],['Session #',S.no],['Type',S.type],
-    ['Lead',S.lead+' ('+mult+'×)'],['Confirmed','✅ Client signed']];
-  document.getElementById('sSumm').innerHTML=rows.map(([k,v])=>
-    `<div class="s-row"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('');
-
-  const row=[ts,fmt(S.date),S.trainer,S.client,S.type,'—',S.lead,S.no,'—','YES',
-    now.getMonth()+1,now.getFullYear(),'—','—','—','—','—','—','—',mult,'—','—','—','NO'].join('\t');
-  document.getElementById('copyTxt').textContent=row;
-  window.scrollTo({top:0,behavior:'smooth'});
+  const rows = [['Timestamp', ts], ['Trainer', S.trainer], ['Client', S.client],
+    ['Date', fmtDate], ['Session #', S.no], ['Type', S.type],
+    ['Lead', S.lead + ' (' + mult + '×)'], ['Confirmed', '✅ Client signed']];
+  document.getElementById('sSumm').innerHTML = rows.map(function (pair) {
+    return '<div class="s-row"><span class="sk">' + pair[0] + '</span><span class="sv">' + pair[1] + '</span></div>';
+  }).join('');
+  document.getElementById('sSumm').innerHTML = document.getElementById('sSumm').innerHTML
+    .replace(/<div class="s-row"/g, '<div class="s-row"').replace(/<\/div>/g, '</div>');
+  const now = new Date();
+  const row = [ts, fmtDate, S.trainer, S.client, S.type, '—', S.lead, S.no, '—', 'YES',
+    now.getMonth() + 1, now.getFullYear(), '—', '—', '—', '—', '—', '—', '—', mult, '—', '—', '—', 'NO'].join('\t');
+  document.getElementById('copyTxt').textContent = row;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+function doSubmit() {
+  clearErr();
+  sync();
+  const t2 = document.getElementById('clientIn').value.trim();
+  if (t2) S.client = t2;
+  let ok = true;
+  if (!S.trainer) { showE('er1', 'c1'); ok = false; }
+  if (!S.client) { showE('er2', 'c2'); ok = false; }
+  if (!S.date) { showE('er3', 'c3'); ok = false; }
+  if (!S.type) { showE('er4', 'c4'); ok = false; }
+  if (!S.lead) { showE('er5', 'c5'); ok = false; }
+  if (!S.no || S.no < 1) { showE('er6', 'c6'); ok = false; }
+  if (!S.signed || !S.confirmed) { document.getElementById('er7').style.display = 'block'; ok = false; }
+  if (!ok) { toast('⚠️ Please complete all required fields'); window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+
+  const now = new Date();
+  const ts = now.toLocaleString('en-MY');
+  const fmt = function (d) {
+    return new Date(d + 'T00:00:00').toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+  const mult = S.lead === 'Calixlab' ? '0.60' : '0.70';
+  const fmtDate = fmt(S.date);
+  const btn = document.querySelector('.btn-sub');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  const payload = {
+    sessionDate: S.date,
+    trainer: S.trainer,
+    client: S.client,
+    sessionType: S.type,
+    leadSource: S.lead,
+    leadMultiplier: mult,
+    sessionNumber: S.no,
+    clientConfirmed: true,
+    clientSheetRow: (S.clientData && S.clientData.sheetRow) || '',
+    packageInfo: (S.clientData && S.clientData.pkg) || ''
+  };
+
+  if (!window.google || !google.script || !google.script.run) {
+    toast('Saved locally only — backend not configured');
+    showSessionSuccess_(ts, fmtDate, mult);
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit Session →'; }
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Session →'; }
+      showSessionSuccess_(ts, fmtDate, mult);
+    })
+    .withFailureHandler(function (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Session →'; }
+      alert('Could not save session: ' + (err.message || 'Please try again.'));
+    })
+    .recordSessionLog(payload);
+}
+
 function doCopy(){
   navigator.clipboard.writeText(document.getElementById('copyTxt').textContent).then(()=>{
     const b=document.querySelector('.btn-copy');
@@ -2458,6 +2501,13 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
         saveTrainersLocal(loadTrainers().filter(function (t) { return t !== n; }));
         self._ok({ ok: true, name: n });
       }, 80);
+    },
+    recordSessionLog: function (data) {
+      var self = this;
+      setTimeout(function () {
+        saveLog({ type: 'session', at: new Date().toISOString(), data: data });
+        self._ok({ rowIndex: 2, local: true });
+      }, 200);
     }
   };
   window.google = { script: { run: run } };
