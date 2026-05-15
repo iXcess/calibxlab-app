@@ -2,7 +2,8 @@
  * GitHub Pages: call Apps Script web app via GET (POST redirects drop the body).
  */
 (function () {
-  var MAX_GET_PAYLOAD = 6000;
+  /** Entire JSON body in URL; images should be pre-compressed via image-compress.js */
+  var MAX_GET_PAYLOAD = 200000;
 
   function gasUrl() {
     var u = window.CALIXLAB_GAS_EXEC_URL || '';

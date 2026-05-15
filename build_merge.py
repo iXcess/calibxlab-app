@@ -96,6 +96,7 @@ body.app-body {
 """
 
 GAS_SCRIPTS = """
+<script src="image-compress.js"></script>
 <script src="config.js"></script>
 <script src="gas-client.js"></script>
 """

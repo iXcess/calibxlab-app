@@ -1439,7 +1439,7 @@ function doCopy(){
       <input type="file" id="receiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'receipt')"/>
       <div class="upload-icon">📎</div>
       <div class="upload-text" id="uploadText">Tap to upload receipt</div>
-      <div class="upload-sub" id="uploadSub">JPG, PNG or PDF — max 10MB</div>
+      <div class="upload-sub" id="uploadSub">JPG, PNG or PDF — max 10MB (photos auto-compressed)</div>
     </div>
     <div class="file-preview" id="filePreview">
       <span style="font-size:20px;" id="fileIcon">📄</span>
@@ -1591,7 +1591,7 @@ function doCopy(){
       <input type="file" id="rpReceiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'rp')"/>
       <div class="upload-icon">📎</div>
       <div class="upload-text" id="rpUploadText">Tap to upload receipt</div>
-      <div class="upload-sub" id="rpUploadSub">JPG, PNG or PDF — max 10MB</div>
+      <div class="upload-sub" id="rpUploadSub">JPG, PNG or PDF — max 10MB (photos auto-compressed)</div>
     </div>
     <div class="file-preview" id="rpFilePreview">
       <span style="font-size:20px;" id="rpFileIcon">📄</span>
@@ -1816,26 +1816,42 @@ function onFileSelected(input, type) {
   if (!file) return;
   if (file.size > 10 * 1024 * 1024) { alert('Max 10MB.'); input.value = ''; return; }
   var isRp = type === 'rp';
-  var icon = file.type === 'application/pdf' ? '📄' : '🖼️';
-  if (isRp) {
-    rpFileName = file.name; rpMimeType = file.type;
-    document.getElementById('rpUploadZone').classList.add('has-file');
-    document.getElementById('rpUploadText').textContent = 'Receipt uploaded ✓';
-    document.getElementById('rpUploadSub').textContent  = file.name;
-    document.getElementById('rpFileIcon').textContent   = icon;
-    document.getElementById('rpFileName').textContent   = file.name;
-    document.getElementById('rpFilePreview').classList.add('show');
-    var r = new FileReader(); r.onload = function(e){ rpFileData = e.target.result.split(',')[1]; }; r.readAsDataURL(file);
-  } else {
-    receiptFileName = file.name; receiptMimeType = file.type;
-    document.getElementById('uploadZone').classList.add('has-file');
-    document.getElementById('uploadText').textContent = 'Receipt uploaded ✓';
-    document.getElementById('uploadSub').textContent  = file.name;
-    document.getElementById('fileIcon').textContent   = icon;
-    document.getElementById('fileName').textContent   = file.name;
-    document.getElementById('filePreview').classList.add('show');
-    var r2 = new FileReader(); r2.onload = function(e){ receiptFileData = e.target.result.split(',')[1]; }; r2.readAsDataURL(file);
+  var zoneId = isRp ? 'rpUploadZone' : 'uploadZone';
+  var textId = isRp ? 'rpUploadText' : 'uploadText';
+  var subId  = isRp ? 'rpUploadSub' : 'uploadSub';
+  document.getElementById(zoneId).classList.add('has-file');
+  document.getElementById(textId).textContent = 'Compressing…';
+  document.getElementById(subId).textContent  = file.name;
+
+  var compress = window.calixlabCompressReceiptFile;
+  if (!compress) {
+    alert('Image compressor failed to load. Refresh the page.');
+    input.value = '';
+    return;
   }
+  compress(file).then(function (out) {
+    var icon = out.mimeType === 'application/pdf' ? '📄' : '🖼️';
+    var label = out.fileName + (out.byteSize ? ' (' + Math.round(out.byteSize / 1024) + ' KB)' : '');
+    if (isRp) {
+      rpFileData = out.base64; rpFileName = out.fileName; rpMimeType = out.mimeType;
+      document.getElementById('rpUploadText').textContent = 'Receipt uploaded ✓';
+      document.getElementById('rpUploadSub').textContent  = label;
+      document.getElementById('rpFileIcon').textContent   = icon;
+      document.getElementById('rpFileName').textContent   = label;
+      document.getElementById('rpFilePreview').classList.add('show');
+    } else {
+      receiptFileData = out.base64; receiptFileName = out.fileName; receiptMimeType = out.mimeType;
+      document.getElementById('uploadText').textContent = 'Receipt uploaded ✓';
+      document.getElementById('uploadSub').textContent  = label;
+      document.getElementById('fileIcon').textContent   = icon;
+      document.getElementById('fileName').textContent   = label;
+      document.getElementById('filePreview').classList.add('show');
+    }
+  }).catch(function (err) {
+    alert(err.message || 'Could not process file.');
+    removeFile(isRp ? 'rp' : 'receipt');
+    input.value = '';
+  });
 }
 function removeFile(type) {
   if (type === 'rp') {
@@ -1843,14 +1859,14 @@ function removeFile(type) {
     document.getElementById('rpReceiptFile').value = '';
     document.getElementById('rpUploadZone').classList.remove('has-file');
     document.getElementById('rpUploadText').textContent = 'Tap to upload receipt';
-    document.getElementById('rpUploadSub').textContent  = 'JPG, PNG or PDF — max 10MB';
+    document.getElementById('rpUploadSub').textContent  = 'JPG, PNG or PDF — max 10MB (photos auto-compressed)';
     document.getElementById('rpFilePreview').classList.remove('show');
   } else {
     receiptFileData = null; receiptFileName = ''; receiptMimeType = '';
     document.getElementById('receiptFile').value = '';
     document.getElementById('uploadZone').classList.remove('has-file');
     document.getElementById('uploadText').textContent = 'Tap to upload receipt';
-    document.getElementById('uploadSub').textContent  = 'JPG, PNG or PDF — max 10MB';
+    document.getElementById('uploadSub').textContent  = 'JPG, PNG or PDF — max 10MB (photos auto-compressed) (photos auto-compressed)';
     document.getElementById('filePreview').classList.remove('show');
   }
 }
@@ -1923,7 +1939,14 @@ function clearSignature() {
   ctx.clearRect(0, 0, canvas.width/window.devicePixelRatio, canvas.height/window.devicePixelRatio);
   hasSig=false; updateSigStatus(); document.getElementById('sigStatus').className='sig-status';
 }
-function getSignatureBase64() { return canvas.toDataURL('image/png').split(',')[1]; }
+function getSignatureBase64() {
+  return canvas.toDataURL('image/png').split(',')[1];
+}
+function getSignatureBase64Compressed() {
+  var fn = window.calixlabCompressSignatureDataUrl;
+  if (!fn) return Promise.reject(new Error('Image compressor not loaded'));
+  return fn(canvas.toDataURL('image/png')).then(function (out) { return out.base64; });
+}
 
 // ══════════════════════════════════════
 // CLIENT LOOKUP (shared)
@@ -2131,7 +2154,7 @@ function submitForm() {
   }
   document.getElementById('error-banner').classList.remove('show');
   document.getElementById('submitBtn').disabled = true;
-  setProgress('Saving client data…');
+  setProgress('Compressing signature…');
 
   var payMode  = getPill('paymentMode') === 'Others' ? 'Others: '+getVal('paymentOthers') : getPill('paymentMode');
   var firstAmt = isInstalment ? parseFloat(getVal('firstPayment'))||0 : parseFloat(getVal('amountPaidFull'))||0;
@@ -2139,39 +2162,46 @@ function submitForm() {
   var sourceVal = getChips('grp-source');
   if (sourceVal === 'Other') { var so = getVal('sourceOther'); if (so) sourceVal = 'Other: ' + so; }
 
-  var data = {
-    fullName: getVal('fullName'), phone: getVal('phone'), email: getVal('email'), ic: getVal('ic'),
-    emergencyContact: getVal('emergencyContact'), emergencyPhone: getVal('emergencyPhone'),
-    trainerName: getVal('trainerNameHidden'), startDate: getVal('startDate'),
-    fitnessLevel: getPill('fitnessLevel'), fitnessGoals: getChips('grp-fitnessGoals'),
-    medicalConditions: getChips('grp-medical') + (medOther ? ' ('+medOther+')' : ''),
-    packageType: getPill('packageType'), sessions: getVal('sessions'),
-    ratePerSession: getVal('ratePerSession'), totalPackageValue: getVal('totalPackageValue'),
-    leadType: getPill('leadType'), paymentMode: payMode,
-    instalmentPlan: getPill('instalmentPlan'), totalInstalments: getVal('totalInstalments'),
-    instalmentAmount: getVal('instalmentAmount'), firstPaymentDate: getVal('firstPaymentDate'),
-    amountPaid: firstAmt.toFixed(2), additionalPayments: '[]',
-    discoverySource: sourceVal, notes: getVal('notes'),
-    receiptBase64: receiptFileData, receiptFileName: receiptFileName, receiptMimeType: receiptMimeType,
-    signatureBase64: getSignatureBase64(),
-    waiverDate: new Date().toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'})
-  };
+  getSignatureBase64Compressed().then(function (sigB64) {
+    setProgress('Saving client data…');
+    var data = {
+      fullName: getVal('fullName'), phone: getVal('phone'), email: getVal('email'), ic: getVal('ic'),
+      emergencyContact: getVal('emergencyContact'), emergencyPhone: getVal('emergencyPhone'),
+      trainerName: getVal('trainerNameHidden'), startDate: getVal('startDate'),
+      fitnessLevel: getPill('fitnessLevel'), fitnessGoals: getChips('grp-fitnessGoals'),
+      medicalConditions: getChips('grp-medical') + (medOther ? ' ('+medOther+')' : ''),
+      packageType: getPill('packageType'), sessions: getVal('sessions'),
+      ratePerSession: getVal('ratePerSession'), totalPackageValue: getVal('totalPackageValue'),
+      leadType: getPill('leadType'), paymentMode: payMode,
+      instalmentPlan: getPill('instalmentPlan'), totalInstalments: getVal('totalInstalments'),
+      instalmentAmount: getVal('instalmentAmount'), firstPaymentDate: getVal('firstPaymentDate'),
+      amountPaid: firstAmt.toFixed(2), additionalPayments: '[]',
+      discoverySource: sourceVal, notes: getVal('notes'),
+      receiptBase64: receiptFileData, receiptFileName: receiptFileName, receiptMimeType: receiptMimeType,
+      signatureBase64: sigB64,
+      waiverDate: new Date().toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'})
+    };
 
-  google.script.run
-    .withSuccessHandler(function(result) {
-      hideProgress();
-      document.getElementById('newClientForm').classList.add('hidden');
-      document.getElementById('successMsg').textContent = data.fullName + ' has been registered under ' + data.trainerName + '.';
-      if (result && result.folderUrl)
-        document.getElementById('driveMsg').innerHTML = '📁 Saved to <a href="'+result.folderUrl+'" target="_blank" style="color:#185FA5;">Google Drive</a>';
-      document.getElementById('successCard').classList.add('show');
-    })
-    .withFailureHandler(function(err) {
-      hideProgress();
-      document.getElementById('submitBtn').disabled = false;
-      alert('Error: ' + (err.message || 'Please try again.'));
-    })
-    .onboardClient(data);
+    google.script.run
+      .withSuccessHandler(function(result) {
+        hideProgress();
+        document.getElementById('newClientForm').classList.add('hidden');
+        document.getElementById('successMsg').textContent = data.fullName + ' has been registered under ' + data.trainerName + '.';
+        if (result && result.folderUrl)
+          document.getElementById('driveMsg').innerHTML = '📁 Saved to <a href="'+result.folderUrl+'" target="_blank" style="color:#185FA5;">Google Drive</a>';
+        document.getElementById('successCard').classList.add('show');
+      })
+      .withFailureHandler(function(err) {
+        hideProgress();
+        document.getElementById('submitBtn').disabled = false;
+        alert('Error: ' + (err.message || 'Please try again.'));
+      })
+      .onboardClient(data);
+  }).catch(function (err) {
+    hideProgress();
+    document.getElementById('submitBtn').disabled = false;
+    alert('Error: ' + (err.message || 'Could not compress signature.'));
+  });
 }
 
 // ══════════════════════════════════════
@@ -2289,6 +2319,7 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
 </div>
 
 
+<script src="image-compress.js"></script>
 <script src="config.js"></script>
 <script src="gas-client.js"></script>
 
