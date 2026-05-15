@@ -137,11 +137,16 @@ STUB_JS = """
         });
         if (!matches.length) { self._ok([]); return; }
         self._ok(matches.map(function (m, i) {
+          var sessions = parseInt(m.data.sessions, 10) || 0;
           return {
             fullName: m.data.fullName, trainerName: m.data.trainerName || 'Alex',
-            packageType: m.data.packageType || '1-1', amountPaid: parseFloat(m.data.amountPaid) || 0,
+            packageType: m.data.packageType || '1-1',
+            sessionsTotal: sessions,
+            sessionsRemaining: sessions,
+            leadType: m.data.leadType || '',
+            discoverySource: m.data.discoverySource || '',
+            amountPaid: parseFloat(m.data.amountPaid) || 0,
             totalValue: parseFloat(m.data.totalPackageValue) || 0, outstanding: 0,
-            sessionsRemaining: parseInt(m.data.sessions, 10) || 0,
             instalmentsPaid: 1, totalInstalments: 1, isInstalment: false,
             rowIndex: i + 2
           };

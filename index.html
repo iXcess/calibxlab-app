@@ -732,7 +732,7 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
         oninput="onAcIn()" onkeydown="onAcKey(event)" onfocus="onAcFocus()" />
       <div class="adrop" id="aDrop"></div>
     </div>
-    <p class="hint">Type 2+ letters. Not in list? Type full name and continue.</p>
+    <p class="hint">Type 2+ letters to search the client sheet. Pick a name for package status and lead source.</p>
     <div class="ferr" id="er2">Please enter a client name.</div>
 
     <!-- Session info panel -->
@@ -853,42 +853,36 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 
 <script>
 // ════════════════════════════════════════════════════
-// CLIENT DATABASE
-// lead: 'Calixlab' = 0.6 | 'Own' = 0.7
-// Admin updates 'done' monthly to keep session counter accurate
+// CLIENT DATABASE — same Google Sheet as Onboarding (lookupClient)
+// lead: Calixlab = 0.6× | Own = 0.7×
 // ════════════════════════════════════════════════════
-const CLIENTS = [
-  { name:"Jes Chu Han",               lead:"Own",      pkg:"Committed (8)",       done:3,  total:8  },
-  { name:"Pelita",                    lead:"Calixlab", pkg:"Transformation (16)", done:7,  total:16 },
-  { name:"Ridzmall",                  lead:"Calixlab", pkg:"Serious (12)",        done:2,  total:12 },
-  { name:"Money Yaw Woon Yi",         lead:"Own",      pkg:"Transformation (16)", done:5,  total:16 },
-  { name:"Megan",                     lead:"Own",      pkg:"Transformation (16)", done:9,  total:16 },
-  { name:"Sean & Sarah",              lead:"Calixlab", pkg:"Serious (12)",        done:4,  total:12 },
-  { name:"Sean Sean",                 lead:"Own",      pkg:"Serious (12)",        done:3,  total:12 },
-  { name:"Hanna",                     lead:"Calixlab", pkg:"Transformation (16)", done:6,  total:16 },
-  { name:"Bee Ee & Catherine",        lead:"Own",      pkg:"VIP (50)",            done:9,  total:50 },
-  { name:"Ashley Gan & Lynn Foo",     lead:"Own",      pkg:"VIP (50)",            done:26, total:50 },
-  { name:"Loo Yen Nee",               lead:"Calixlab", pkg:"Transformation (16)", done:7,  total:16 },
-  { name:"Arwa Kaddur",               lead:"Calixlab", pkg:"Starter (4)",         done:3,  total:4  },
-  { name:"Theodora",                  lead:"Own",      pkg:"Starter (4)",         done:1,  total:4  },
-  { name:"Jenifer",                   lead:"Calixlab", pkg:"Transformation (16)", done:2,  total:16 },
-  { name:"Chong Hun Yao",             lead:"Own",      pkg:"Transformation (16)", done:14, total:16 },
-  { name:"Tan Jian Liang & Khoo",     lead:"Calixlab", pkg:"Transformation (16)", done:12, total:16 },
-  { name:"Ronald",                    lead:"Own",      pkg:"Serious (12)",        done:2,  total:12 },
-  { name:"Chan Farn Xuan",            lead:"Calixlab", pkg:"Serious (12)",        done:2,  total:12 },
-  { name:"Lynn Wong",                 lead:"Own",      pkg:"VIP (50)",            done:13, total:50 },
-  { name:"Paul",                      lead:"Calixlab", pkg:"Transformation (16)", done:10, total:16 },
-  { name:"Emmy",                      lead:"Own",      pkg:"Transformation (16)", done:3,  total:16 },
-  { name:"Tan Tee Wan",               lead:"Calixlab", pkg:"Serious (12)",        done:4,  total:12 },
-  { name:"Dennis & Aubrey",           lead:"Own",      pkg:"Transformation (16)", done:12, total:16 },
-  { name:"Winny & Kok",               lead:"Calixlab", pkg:"Starter (4)",         done:1,  total:4  },
-  { name:"Jayce Low Chun Lan",        lead:"Own",      pkg:"Transformation (16)", done:8,  total:16 },
-  { name:"Kitt",                      lead:"Own",      pkg:"Transformation (16)", done:11, total:16 },
-  { name:"Edward & Edmund Chung",     lead:"Calixlab", pkg:"VIP (50)",            done:46, total:50 },
-  { name:"Edmund Chung",              lead:"Own",      pkg:"VIP (50)",            done:2,  total:50 },
-  { name:"Edward Chung",              lead:"Own",      pkg:"VIP (50)",            done:3,  total:50 },
-  { name:"Ravin",                     lead:"Calixlab", pkg:"Transformation (16)", done:7,  total:16 },
-];
+let acRes = [], acHi = -1, acTimer = null;
+const acCache = {};
+
+function mapLeadForSession(leadType) {
+  const t = String(leadType || '').toLowerCase();
+  if (t.indexOf('calixlab') >= 0) return 'Calixlab';
+  if (t.indexOf('trainer') >= 0 || t.indexOf('own') >= 0) return 'Own';
+  return 'Own';
+}
+
+function mapSheetRowToSessionClient(r) {
+  const total = parseInt(r.sessionsTotal, 10) || 0;
+  const remaining = parseInt(r.sessionsRemaining, 10);
+  const left = isNaN(remaining) ? total : Math.max(0, remaining);
+  const done = Math.max(0, total - left);
+  const pkgType = r.packageType || 'Package';
+  const pkg = total ? pkgType + ' (' + total + ')' : pkgType;
+  return {
+    name: r.fullName || '',
+    lead: mapLeadForSession(r.leadType),
+    leadLabel: r.leadType || r.discoverySource || '',
+    pkg: pkg,
+    done: done,
+    total: total || 1,
+    sheetRow: r.rowIndex
+  };
+}
 
 // ── STATE ────────────────────────────────────────
 const S = {
@@ -896,7 +890,6 @@ const S = {
   date:'', type:'', lead:'', no:1,
   signed:false, confirmed:false
 };
-let acRes=[], acHi=-1;
 
 // ── INIT ─────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', ()=>{
@@ -922,7 +915,8 @@ function onAcIn(){
   } else { S.client=q; }
   if(q.length<2){ closeDrop(); sync(); return; }
   const ql=q.toLowerCase();
-  acRes=CLIENTS.filter(c=>c.name.toLowerCase().includes(ql));
+  acRes=[]; /* replaced below via sheet lookup */
+  void ql;
   acHi=-1;
   const dd=document.getElementById('aDrop');
   if(!acRes.length){
@@ -1019,7 +1013,7 @@ function setLeadBox(c){
   box.innerHTML=`
     <div class="lead-left">
       <span class="lead-mult">${mult}</span>
-      <span class="lead-name">${c.lead}</span>
+      <span class="lead-name">${c.leadLabel || c.lead}</span>
     </div>
     <span class="lead-right">Auto-filled ✓</span>`;
   hint.style.display='block';
@@ -1115,7 +1109,7 @@ function doSubmit(){
   if(!S.client) {showE('er2','c2');ok=false;}
   if(!S.date)   {showE('er3','c3');ok=false;}
   if(!S.type)   {showE('er4','c4');ok=false;}
-  if(!S.lead)   {showE('er5','c5');ok=false;}
+  if(!S.lead)   {showE('er5','c5');ok=false;} // pick client from sheet list to auto-fill lead
   if(!S.no||S.no<1){showE('er6','c6');ok=false;}
   if(!S.signed||!S.confirmed){document.getElementById('er7').style.display='block';ok=false;}
   if(!ok){toast('⚠️ Please complete all required fields');window.scrollTo({top:0,behavior:'smooth'});return;}
@@ -2359,11 +2353,16 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
         });
         if (!matches.length) { self._ok([]); return; }
         self._ok(matches.map(function (m, i) {
+          var sessions = parseInt(m.data.sessions, 10) || 0;
           return {
             fullName: m.data.fullName, trainerName: m.data.trainerName || 'Alex',
-            packageType: m.data.packageType || '1-1', amountPaid: parseFloat(m.data.amountPaid) || 0,
+            packageType: m.data.packageType || '1-1',
+            sessionsTotal: sessions,
+            sessionsRemaining: sessions,
+            leadType: m.data.leadType || '',
+            discoverySource: m.data.discoverySource || '',
+            amountPaid: parseFloat(m.data.amountPaid) || 0,
             totalValue: parseFloat(m.data.totalPackageValue) || 0, outstanding: 0,
-            sessionsRemaining: parseInt(m.data.sessions, 10) || 0,
             instalmentsPaid: 1, totalInstalments: 1, isInstalment: false,
             rowIndex: i + 2
           };
