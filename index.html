@@ -1,0 +1,2342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Calixlab — Trainer Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+
+/* —— App shell (outside scoped panels) —— */
+html { -webkit-text-size-adjust: 100%; }
+body.app-body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #e8ecf1;
+  color: #0e1c2a;
+}
+#session-panel, #onboard-panel { display: none; }
+#session-panel.active, #onboard-panel.active { display: block; }
+.calix-appbar {
+  position: sticky; top: 0; z-index: 2000;
+  display: flex; gap: 8px; align-items: center; justify-content: center;
+  padding: 10px 12px 12px;
+  background: linear-gradient(180deg, #0e1c2a 0%, #1a3c5e 100%);
+  box-shadow: 0 4px 16px rgba(14,28,42,.18);
+}
+.calix-appbar-inner {
+  display: flex; width: 100%; max-width: 560px;
+  background: rgba(255,255,255,.1); border-radius: 12px; padding: 4px;
+  border: 1px solid rgba(255,255,255,.12);
+}
+.calix-tab {
+  flex: 1; border: none; border-radius: 9px; padding: 11px 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+  background: transparent; color: rgba(255,255,255,.55);
+  transition: color .15s, background .15s;
+}
+.calix-tab.active {
+  background: #fff; color: #1a3c5e;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+.calix-tab:focus-visible { outline: 2px solid #7ab8f5; outline-offset: 2px; }
+.calix-demonote {
+  max-width: 560px; margin: 0 auto; padding: 8px 16px 0;
+  font-size: 12px; color: #5a6b7a; text-align: center; line-height: 1.45;
+}
+
+</style>
+<style>
+:root {
+  --bg:       #f0f4f8;
+  --card:     #ffffff;
+  --ink:      #0e1c2a;
+  --ink2:     #3d5166;
+  --ink3:     #8098ae;
+  --border:   #d8e3ed;
+  --navy:     #1a3c5e;
+  --navy-lt:  #e8f0f8;
+  --green:    #0e6b44;
+  --green-lt: #e6f4ee;
+  --gold:     #9a6c00;
+  --gold-lt:  #fef9e7;
+  --red:      #b91c1c;
+  --red-lt:   #fef2f2;
+  --orange:   #b45309;
+  --ora-lt:   #fff7ed;
+  --shadow-s: 0 1px 4px rgba(14,28,42,.07), 0 2px 12px rgba(14,28,42,.05);
+  --shadow-m: 0 4px 20px rgba(14,28,42,.1), 0 1px 4px rgba(14,28,42,.06);
+  --r:        13px;
+}
+@scope (#session-panel) {
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:scope { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; padding-bottom:60px; }
+
+/* ── HEADER ────────────────────────────────────── */
+.hdr {
+  background:var(--navy);
+  padding:32px 20px 28px;
+  position:relative; overflow:hidden;
+}
+.hdr-dots {
+  position:absolute; inset:0;
+  background-image:radial-gradient(circle, rgba(255,255,255,.07) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+.hdr-inner { position:relative; z-index:1; }
+.hdr-brand { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:10px; }
+.hdr-title { font-size:28px; font-weight:700; color:#fff; letter-spacing:-.5px; line-height:1.15; margin-bottom:6px; }
+.hdr-title span { color:#7ab8f5; }
+.hdr-sub   { font-size:13px; color:rgba(255,255,255,.5); margin-bottom:18px; }
+.hdr-date  { display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); border-radius:20px; padding:7px 14px; font-family:'DM Mono',monospace; font-size:11px; color:rgba(255,255,255,.7); }
+
+/* ── PROGRESS ──────────────────────────────────── */
+.prog {
+  background:var(--card); border-bottom:1px solid var(--border);
+  padding:14px 20px; position:sticky; top:0; z-index:100;
+}
+.prog-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; }
+.prog-step { font-family:'DM Mono',monospace; font-size:11px; font-weight:500; color:var(--green); }
+.prog-frac { font-family:'DM Mono',monospace; font-size:11px; color:var(--ink3); }
+.prog-bar  { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.prog-fill { height:100%; background:linear-gradient(90deg,var(--green),var(--navy)); border-radius:2px; transition:width .4s cubic-bezier(.4,0,.2,1); }
+
+/* ── LAYOUT ────────────────────────────────────── */
+.body  { padding:16px; max-width:560px; margin:0 auto; display:flex; flex-direction:column; gap:11px; }
+.card  {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--r);
+  padding:18px 18px 16px; box-shadow:var(--shadow-s);
+  transition:border-color .2s, box-shadow .2s;
+  animation:up .28s ease both;
+}
+.card:focus-within           { border-color:var(--navy); box-shadow:var(--shadow-m); }
+.card.err-card               { border-color:var(--red)!important; }
+.card:nth-child(1){animation-delay:.03s} .card:nth-child(2){animation-delay:.07s}
+.card:nth-child(3){animation-delay:.11s} .card:nth-child(4){animation-delay:.15s}
+.card:nth-child(5){animation-delay:.19s} .card:nth-child(6){animation-delay:.23s}
+@keyframes up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+
+.lbl  { font-family:'DM Mono',monospace; font-size:10px; font-weight:500; letter-spacing:1.2px; text-transform:uppercase; color:var(--ink3); margin-bottom:10px; display:flex; align-items:center; gap:5px; }
+.lbl .r { color:var(--red); font-size:15px; line-height:1; }
+.hint { font-size:12px; color:var(--ink3); margin-top:7px; line-height:1.5; }
+.ferr { font-size:12px; color:var(--red); margin-top:6px; font-weight:500; display:none; }
+
+/* ── INPUTS ────────────────────────────────────── */
+select, input[type=text], input[type=date], input[type=number] {
+  width:100%; padding:13px 15px; border:1.5px solid var(--border); border-radius:10px;
+  font-family:'DM Sans',sans-serif; font-size:16px; color:var(--ink);
+  background:var(--bg); appearance:none; -webkit-appearance:none;
+  outline:none; transition:border-color .2s, background .2s;
+}
+select:focus, input:focus { border-color:var(--navy); background:var(--card); }
+.sw { position:relative; }
+.sw::after { content:'▾'; position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--ink3); pointer-events:none; }
+
+/* ── AUTOCOMPLETE ──────────────────────────────── */
+.aw { position:relative; }
+.ai {
+  width:100%; padding:13px 15px; border:1.5px solid var(--border); border-radius:10px;
+  font-family:'DM Sans',sans-serif; font-size:16px; color:var(--ink);
+  background:var(--bg); outline:none; transition:border-color .2s, background .2s;
+}
+.ai:focus  { border-color:var(--navy); background:var(--card); }
+.ai.filled { border-color:var(--green); background:var(--green-lt); font-weight:600; }
+.adrop {
+  position:absolute; top:calc(100%+5px); left:0; right:0;
+  background:var(--card); border:1.5px solid var(--navy); border-radius:11px;
+  box-shadow:var(--shadow-m); max-height:250px; overflow-y:auto; z-index:300; display:none;
+}
+.adrop.open { display:block; }
+.aitem {
+  padding:12px 16px; font-size:14px; cursor:pointer;
+  border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;
+  transition:background .1s; gap:10px;
+}
+.aitem:last-child { border-bottom:none; }
+.aitem:hover, .aitem.hi { background:var(--navy-lt); }
+.aitem mark  { background:none; color:var(--navy); font-weight:700; }
+.aitem-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.abadge {
+  font-family:'DM Mono',monospace; font-size:10px; font-weight:500;
+  padding:3px 8px; border-radius:10px; white-space:nowrap;
+}
+.ab-ok   { background:var(--green-lt); color:var(--green); }
+.ab-warn { background:var(--ora-lt);   color:var(--orange); }
+.ab-bad  { background:var(--red-lt);   color:var(--red); }
+.alead-badge {
+  font-family:'DM Mono',monospace; font-size:10px;
+  padding:3px 8px; border-radius:10px; white-space:nowrap;
+  background:var(--navy-lt); color:var(--navy);
+}
+.aempty { padding:13px 16px; font-size:13px; color:var(--ink3); font-style:italic; }
+
+/* ── SESSION INFO PANEL ────────────────────────── */
+.si {
+  margin-top:12px;
+  background:linear-gradient(135deg,#0e1c2a 0%,#1a3c5e 100%);
+  border-radius:11px; padding:16px; display:none;
+  animation:up .3s ease both;
+}
+.si.show { display:block; }
+.si-ttl  { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.35); margin-bottom:12px; }
+.si-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+.si-box  { background:rgba(255,255,255,.07); border-radius:8px; padding:10px; text-align:center; }
+.si-v    { font-family:'DM Mono',monospace; font-size:22px; font-weight:500; color:#fff; line-height:1; }
+.si-k    { font-size:10px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
+.si-box.ok  .si-v { color:#5dd98a; }
+.si-box.warn .si-v{ color:#ffd166; }
+.si-box.bad  .si-v{ color:#ff6b6b; }
+.si-next { background:rgba(255,255,255,.09); border-radius:8px; padding:12px 14px; display:flex; align-items:flex-start; gap:10px; }
+.si-nb strong { display:block; font-size:14px; color:#fff; margin-bottom:3px; line-height:1.3; }
+.si-nb span   { font-size:12px; color:rgba(255,255,255,.55); line-height:1.4; }
+.si-foot { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,.25); margin-top:10px; }
+
+/* ── LEAD SOURCE (auto) ────────────────────────── */
+.lead-auto {
+  padding:14px 16px;
+  border-radius:10px;
+  border:1.5px solid var(--border);
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:space-between;
+  transition:all .25s;
+  min-height:54px;
+}
+.lead-auto.set-calix { background:var(--navy-lt); border-color:var(--navy); }
+.lead-auto.set-own   { background:var(--green-lt); border-color:var(--green); }
+.lead-left { display:flex; align-items:center; gap:12px; }
+.lead-mult { font-family:'DM Mono',monospace; font-size:26px; font-weight:500; line-height:1; }
+.set-calix .lead-mult { color:var(--navy); }
+.set-own   .lead-mult { color:var(--green); }
+.lead-name { font-size:15px; font-weight:600; }
+.set-calix .lead-name { color:var(--navy); }
+.set-own   .lead-name { color:var(--green); }
+.lead-right { font-size:11px; font-weight:500; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+.set-calix .lead-right { background:rgba(26,60,94,.1); color:var(--navy); }
+.set-own   .lead-right { background:rgba(14,107,68,.1); color:var(--green); }
+.lead-empty { font-size:13px; color:var(--ink3); font-style:italic; }
+.lead-locked { font-size:11px; color:var(--ink3); margin-top:7px; }
+.lead-locked.visible { }
+
+/* ── CHIPS ─────────────────────────────────────── */
+.chips { display:flex; gap:8px; flex-wrap:wrap; }
+.chip {
+  flex:1; min-width:80px; padding:12px 8px;
+  border:1.5px solid var(--border); border-radius:9px;
+  background:var(--bg); font-family:'DM Sans',sans-serif;
+  font-size:14px; font-weight:500; color:var(--ink2);
+  cursor:pointer; text-align:center; transition:all .15s;
+}
+.chip:hover { border-color:var(--navy); background:var(--navy-lt); }
+.chip.t-g { background:var(--green-lt); border-color:var(--green); color:var(--green); font-weight:700; }
+.chip.t-s { background:var(--ora-lt);   border-color:var(--orange); color:var(--orange); font-weight:700; }
+.chip.t-p { background:var(--red-lt);   border-color:var(--red);    color:var(--red);    font-weight:700; }
+
+/* ── COUNTER ───────────────────────────────────── */
+.ctr { display:flex; align-items:center; border:1.5px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg); transition:border-color .2s; }
+.ctr.on { border-color:var(--navy); background:var(--navy-lt); }
+.cb  { width:54px; height:52px; border:none; background:transparent; font-size:22px; color:var(--ink2); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .1s; flex-shrink:0; }
+.cb:active { background:var(--border); }
+.cv  { flex:1; text-align:center; font-family:'DM Mono',monospace; font-size:26px; font-weight:500; border:none; background:transparent; outline:none; color:var(--ink); }
+.ctr.on .cv { color:var(--navy); }
+
+/* ── SIGNATURE ─────────────────────────────────── */
+.sign-card {
+  background:var(--green-lt); border:2px solid var(--green); border-radius:var(--r);
+  padding:18px; animation:up .28s ease .26s both;
+}
+.sign-ttl { font-size:15px; font-weight:700; color:var(--green); display:flex; align-items:center; gap:7px; margin-bottom:3px; }
+.sign-sub { font-size:12px; color:var(--green); opacity:.75; margin-bottom:14px; line-height:1.5; }
+.pad-wrap { background:white; border:1.5px solid var(--green); border-radius:10px; position:relative; overflow:hidden; margin-bottom:10px; }
+.pad-lbl  { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; font-size:13px; color:#ccc; pointer-events:none; line-height:1.7; transition:opacity .2s; }
+canvas    { display:block; width:100%; height:130px; touch-action:none; cursor:crosshair; }
+.btn-clr  { width:100%; padding:10px; border:1.5px solid var(--border); border-radius:8px; background:white; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; color:var(--ink2); cursor:pointer; }
+.cfm-row  { display:flex; align-items:flex-start; gap:12px; margin-top:12px; padding:13px; background:white; border-radius:10px; border:1.5px solid var(--border); cursor:pointer; transition:border-color .15s; }
+.cfm-row.on { border-color:var(--green); }
+.cfm-row input[type=checkbox] { width:22px; height:22px; min-width:22px; accent-color:var(--green); margin-top:1px; cursor:pointer; }
+.cfm-txt  { font-size:14px; color:var(--ink); line-height:1.5; }
+.cfm-txt strong { color:var(--green); }
+
+/* ── PREVIEW ───────────────────────────────────── */
+.preview { background:var(--ink); border-radius:var(--r); padding:16px 18px; display:none; margin-top:2px; }
+.preview.on { display:block; }
+.prev-ttl { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.3); margin-bottom:12px; }
+.prev-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.pi .pk { font-size:10px; color:rgba(255,255,255,.3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px; }
+.pi .pv { font-size:14px; color:white; font-weight:500; }
+
+/* ── SUBMIT ────────────────────────────────────── */
+.btn-sub {
+  width:100%; padding:17px; background:var(--green); border:none; border-radius:var(--r);
+  font-family:'DM Sans',sans-serif; font-size:16px; font-weight:700; color:white;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:opacity .2s, transform .15s; margin-top:10px;
+}
+.btn-sub:active { transform:scale(.98); }
+.sub-note { text-align:center; font-size:11px; color:var(--ink3); margin-top:10px; padding-bottom:4px; }
+
+/* ── SUCCESS ───────────────────────────────────── */
+.success { display:none; padding:44px 20px; text-align:center; max-width:480px; margin:0 auto; }
+.success.on { display:block; }
+.s-ring { width:84px; height:84px; border-radius:50%; background:var(--green-lt); border:2px solid var(--green); display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 22px; animation:pop .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+.s-title { font-size:26px; font-weight:700; color:var(--ink); margin-bottom:8px; letter-spacing:-.5px; }
+.s-sub   { font-size:14px; color:var(--ink3); line-height:1.6; margin-bottom:28px; }
+.s-summ  { background:var(--card); border:1px solid var(--border); border-radius:var(--r); padding:18px; text-align:left; margin-bottom:16px; box-shadow:var(--shadow-s); }
+.s-row   { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:14px; }
+.s-row:last-child { border-bottom:none; }
+.s-row .sk { color:var(--ink3); } .s-row .sv { font-weight:600; }
+.copy-box { background:var(--ink); border-radius:var(--r); padding:16px; text-align:left; margin-bottom:16px; }
+.copy-lbl { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.3); margin-bottom:9px; }
+.copy-txt { font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,.6); line-height:1.9; word-break:break-all; }
+.btn-copy { margin-top:10px; width:100%; padding:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:8px; font-family:'DM Mono',monospace; font-size:12px; color:rgba(255,255,255,.65); cursor:pointer; transition:background .15s; }
+.btn-copy:active { background:rgba(255,255,255,.16); }
+.btn-new { width:100%; padding:15px; background:var(--navy); border:none; border-radius:var(--r); font-family:'DM Sans',sans-serif; font-size:15px; font-weight:600; color:white; cursor:pointer; }
+
+/* ── TOAST ─────────────────────────────────────── */
+.toast { position:fixed; bottom:20px; left:16px; right:16px; background:var(--red); color:white; padding:13px 16px; border-radius:10px; font-size:14px; font-weight:500; transform:translateY(100px); opacity:0; transition:all .3s cubic-bezier(.34,1.56,.64,1); z-index:999; max-width:528px; margin:0 auto; }
+.toast.show { transform:translateY(0); opacity:1; }
+}
+</style>
+<style>
+@scope (#onboard-panel) {
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:scope {
+  -webkit-text-size-adjust: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0efe9; min-height: 100vh; padding: 20px 16px 60px;
+  color: #1a1a1a; font-size: 16px; -webkit-tap-highlight-color: transparent;
+}
+
+/* ── HEADER ── */
+.header { text-align: center; margin-bottom: 24px; }
+.logo {
+  width: 56px; height: 56px; background: #185FA5; border-radius: 16px;
+  display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px;
+}
+.logo svg { width: 30px; height: 30px; fill: white; }
+.header h1 { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1.2; }
+.header p  { font-size: 14px; color: #666; margin-top: 4px; }
+
+/* MODE SWITCHER */
+.mode-switcher {
+  display: flex; max-width: 560px; margin: 0 auto 20px;
+  background: white; border-radius: 12px; padding: 4px;
+  border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.mode-btn {
+  flex: 1; padding: 10px; border: none; border-radius: 9px; font-size: 14px;
+  font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s;
+  background: transparent; color: #888;
+}
+.mode-btn.active { background: #185FA5; color: white; }
+
+/* ── CARD ── */
+.card {
+  background: white; border-radius: 16px; border: 1px solid #e8e8e8;
+  padding: 20px; margin-bottom: 14px; max-width: 560px;
+  margin-left: auto; margin-right: auto; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.section-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #185FA5; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid #E6F1FB;
+  display: flex; align-items: center; gap: 6px;
+}
+.section-title.green  { color: #3B6D11; border-bottom-color: #C0DD97; }
+.section-title.amber  { color: #854F0B; border-bottom-color: #FAC775; }
+.section-title.purple { color: #534AB7; border-bottom-color: #CECBF6; }
+.section-title.coral  { color: #993C1D; border-bottom-color: #F0997B; }
+.section-title.teal   { color: #0F6E56; border-bottom-color: #5DCAA5; }
+.section-title.red    { color: #A32D2D; border-bottom-color: #F09595; }
+.section-icon { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* ── FIELDS ── */
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 7px; line-height: 1.3; }
+.req { color: #E24B4A; }
+.sublabel { font-weight: 400; color: #999; font-size: 11px; margin-left: 4px; }
+input[type=text], input[type=tel], input[type=email],
+input[type=number], input[type=date], select, textarea {
+  width: 100%; border: 1.5px solid #ddd; border-radius: 10px;
+  padding: 13px 14px; font-size: 16px; color: #1a1a1a; background: #fafafa;
+  font-family: inherit; -webkit-appearance: none; appearance: none;
+  transition: border-color 0.15s, background 0.15s; min-height: 48px;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: #185FA5; background: white;
+  box-shadow: 0 0 0 3px rgba(24,95,165,0.12);
+}
+textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23888' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+}
+input[readonly] { background: #f0f0f0 !important; color: #888 !important; border-color: #e0e0e0 !important; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 400px) { .row2 { grid-template-columns: 1fr; } }
+input.prefilled { background: #f0f7ff !important; border-color: #B5D4F4 !important; color: #0C447C !important; }
+
+/* ── TOGGLES ── */
+.toggle-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.toggle-btn {
+  border: 1.5px solid #ddd; border-radius: 24px; font-size: 14px; font-weight: 500;
+  cursor: pointer; background: white; color: #555; font-family: inherit;
+  min-height: 44px; padding: 10px 16px; transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.toggle-btn.active { background: #185FA5; color: white; border-color: #185FA5; }
+.toggle-btn.active.green  { background: #3B6D11; border-color: #3B6D11; }
+.toggle-btn.active.purple { background: #534AB7; border-color: #534AB7; }
+
+/* ── CHIPS ── */
+.chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn {
+  padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 10px;
+  font-size: 14px; font-weight: 500; cursor: pointer; background: white; color: #555;
+  font-family: inherit; min-height: 44px; transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.chip-btn.active         { background: #FCEBEB; color: #A32D2D; border-color: #E24B4A; }
+.chip-btn.active.none-c  { background: #EAF3DE; color: #27500A; border-color: #639922; }
+.chip-btn.active.goal-c  { background: #E6F1FB; color: #0C447C; border-color: #185FA5; }
+.chip-btn.active.source-c { background: #EEEDFE; color: #534AB7; border-color: #AFA9EC; }
+
+/* ── TRAINER ── */
+.trainer-select-row { display: flex; gap: 8px; }
+.trainer-select-row select { flex: 1; }
+.icon-btn {
+  min-width: 48px; min-height: 48px; border-radius: 10px; border: 1.5px solid #ddd;
+  background: #f5f5f5; color: #555; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-family: inherit; transition: all 0.15s; touch-action: manipulation;
+}
+.icon-btn.add-btn { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; font-size: 22px; }
+.icon-btn.del-btn { background: #FCEBEB; color: #A32D2D; border-color: #F09595; }
+.add-trainer-panel {
+  display: none; background: #f5f9ff; border: 1.5px solid #B5D4F4;
+  border-radius: 10px; padding: 14px; margin-top: 10px;
+}
+.add-trainer-panel.show { display: block; }
+.add-trainer-panel input { margin-bottom: 10px; }
+.panel-btns { display: flex; gap: 8px; }
+.panel-btns button {
+  flex: 1; min-height: 44px; border-radius: 10px; border: none;
+  font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.btn-confirm { background: #185FA5; color: white; }
+.btn-cancel  { background: #e8e8e8; color: #555; }
+.delete-trainer-panel {
+  display: none; background: #fff5f5; border: 1.5px solid #F09595;
+  border-radius: 10px; padding: 14px; margin-top: 10px;
+}
+.delete-trainer-panel.show { display: block; }
+.delete-trainer-panel p { font-size: 13px; color: #791F1F; margin-bottom: 10px; font-weight: 500; }
+.trainer-delete-list { display: flex; flex-direction: column; gap: 6px; }
+.trainer-delete-row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: white; border: 1px solid #F09595; border-radius: 8px;
+  padding: 10px 12px; font-size: 14px; color: #1a1a1a;
+}
+.trainer-delete-row button {
+  background: #E24B4A; color: white; border: none; border-radius: 6px;
+  padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+  min-height: 32px; font-family: inherit;
+}
+.close-panel-btn {
+  display: block; width: 100%; min-height: 40px; margin-top: 10px;
+  background: #f0f0f0; color: #555; border: none; border-radius: 8px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+
+/* ── PRESETS ── */
+.preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.preset-btn {
+  padding: 10px 18px; border: 1.5px solid #ddd; border-radius: 24px;
+  font-size: 14px; font-weight: 500; cursor: pointer; background: white; color: #555;
+  font-family: inherit; min-height: 44px; transition: all 0.15s;
+}
+.preset-btn.active { background: #185FA5; color: white; border-color: #185FA5; }
+
+/* ── HIDDEN BLOCKS ── */
+.hblock { display: none; }
+.hblock.show { display: block; }
+
+/* ── INSTALMENT ── */
+.instal-summary {
+  background: #FFF8EE; border: 1.5px solid #FAC775; border-radius: 10px;
+  padding: 14px; margin-top: 12px; display: none;
+}
+.instal-summary.show { display: block; }
+.is-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #FAE0A0; }
+.is-row:last-child { border-bottom: none; }
+.is-lbl { font-size: 13px; color: #854F0B; }
+.is-val { font-size: 14px; font-weight: 700; color: #412402; }
+.due-warn {
+  background: #FCEBEB; border: 1.5px solid #F09595; border-radius: 10px;
+  padding: 12px 14px; font-size: 13px; color: #791F1F; margin-top: 10px; line-height: 1.5; display: none;
+}
+.due-warn.show { display: block; }
+.others-reveal { display: none; margin-top: 10px; }
+.others-reveal.show { display: block; }
+
+/* ── UPLOAD ── */
+.upload-zone {
+  border: 2px dashed #B5D4F4; border-radius: 12px; padding: 24px 16px;
+  text-align: center; background: #f5f9ff; cursor: pointer;
+  transition: all 0.15s; position: relative;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: #185FA5; background: #E6F1FB; }
+.upload-zone.has-file { border-color: #639922; background: #EAF3DE; border-style: solid; }
+.upload-zone input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  width: 100%; height: 100%; min-height: unset; border: none; padding: 0; background: none;
+}
+.upload-icon { font-size: 32px; margin-bottom: 8px; }
+.upload-text { font-size: 14px; font-weight: 600; color: #185FA5; }
+.upload-sub  { font-size: 12px; color: #888; margin-top: 4px; }
+.upload-zone.has-file .upload-text { color: #27500A; }
+.upload-zone.has-file .upload-sub  { color: #3B6D11; }
+.file-preview {
+  display: none; margin-top: 12px; background: #EAF3DE; border-radius: 8px;
+  padding: 10px 14px; font-size: 13px; color: #27500A; font-weight: 500;
+  align-items: center; gap: 10px;
+}
+.file-preview.show { display: flex; }
+.file-preview-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.remove-file-btn { background: none; border: none; color: #A32D2D; font-size: 18px; cursor: pointer; padding: 0 4px; }
+
+/* ── WAIVER ── */
+.waiver-scroll {
+  background: #fafafa; border: 1.5px solid #ddd; border-radius: 10px;
+  padding: 16px; height: 260px; overflow-y: auto; font-size: 13px;
+  line-height: 1.7; color: #333; margin-bottom: 14px;
+}
+.waiver-scroll h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #0C447C; text-align: center; }
+.waiver-scroll h4 { font-size: 13px; font-weight: 700; margin: 12px 0 6px; color: #185FA5; }
+.waiver-scroll p, .waiver-scroll li { margin-bottom: 8px; }
+.waiver-scroll ol, .waiver-scroll ul { padding-left: 20px; }
+.waiver-read-confirm {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: #FFF8EE; border: 1.5px solid #FAC775; border-radius: 10px;
+  padding: 14px; margin-bottom: 16px; cursor: pointer;
+}
+.waiver-check {
+  width: 24px; height: 24px; border: 2px solid #ddd; border-radius: 6px;
+  background: white; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px; transition: all 0.15s;
+}
+.waiver-check.checked { background: #3B6D11; border-color: #3B6D11; }
+.waiver-check.checked::after { content: '✓'; color: white; font-size: 14px; font-weight: 700; }
+.waiver-read-text { font-size: 13px; color: #633806; line-height: 1.5; }
+.sig-label { font-size: 13px; font-weight: 600; color: #444; margin-bottom: 8px; display: block; }
+.sig-wrap { border: 1.5px solid #ddd; border-radius: 10px; overflow: hidden; background: white; }
+.sig-wrap.signed { border-color: #3B6D11; }
+canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; cursor: crosshair; }
+.sig-toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: #f5f5f5; border-top: 1px solid #e8e8e8;
+}
+.sig-hint { font-size: 12px; color: #888; }
+.sig-clear-btn {
+  background: none; border: 1px solid #ddd; border-radius: 6px;
+  padding: 5px 12px; font-size: 12px; color: #555; cursor: pointer; font-family: inherit; min-height: 32px;
+}
+.sig-status { font-size: 12px; font-weight: 600; margin-top: 6px; display: none; }
+.sig-status.signed { display: block; color: #27500A; }
+.waiver-client-name {
+  background: #E6F1FB; border-radius: 8px; padding: 10px 14px;
+  font-size: 14px; font-weight: 600; color: #0C447C; margin-bottom: 14px;
+  text-align: center; display: none;
+}
+.waiver-client-name.show { display: block; }
+
+/* ── ERROR BANNER ── */
+.error-banner {
+  display: none; background: #FCEBEB; border: 1.5px solid #F09595; border-radius: 10px;
+  padding: 14px; margin-bottom: 14px; font-size: 14px; color: #791F1F;
+  line-height: 1.6; max-width: 560px; margin-left: auto; margin-right: auto;
+}
+.error-banner.show { display: block; }
+
+/* ── SUCCESS ── */
+.success-card {
+  display: none; text-align: center; max-width: 560px; margin: 40px auto;
+  background: white; border-radius: 20px; padding: 40px 24px;
+  border: 1px solid #e8e8e8; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.success-card.show { display: block; }
+.success-card h2 { font-size: 22px; font-weight: 700; color: #0C447C; margin-bottom: 12px; }
+.success-card p  { font-size: 15px; color: #555; line-height: 1.5; }
+.reset-btn {
+  display: inline-block; margin-top: 24px; padding: 14px 32px;
+  background: #185FA5; color: white; border: none; border-radius: 12px;
+  font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+
+/* ── SUBMIT ── */
+.submit-wrap { max-width: 560px; margin: 0 auto; }
+.submit-btn {
+  width: 100%; min-height: 56px; background: #185FA5; color: white;
+  border: none; border-radius: 14px; font-size: 17px; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: background 0.15s; touch-action: manipulation;
+}
+.submit-btn:active   { background: #0C447C; }
+.submit-btn:disabled { background: #b0b0b0; cursor: not-allowed; }
+.submit-btn.green-btn { background: #3B6D11; }
+.submit-btn.green-btn:active { background: #27500A; }
+
+/* ── PROGRESS ── */
+.progress-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  z-index: 999; align-items: center; justify-content: center;
+}
+.progress-overlay.show { display: flex; }
+.progress-box {
+  background: white; border-radius: 16px; padding: 28px 32px; text-align: center; max-width: 300px; width: 90%;
+}
+.progress-spinner {
+  width: 44px; height: 44px; border: 4px solid #E6F1FB; border-top-color: #185FA5;
+  border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.progress-box p { font-size: 15px; font-weight: 600; color: #0C447C; margin-bottom: 6px; }
+.progress-box small { font-size: 12px; color: #888; }
+
+/* ── CLIENT LOOKUP ── */
+.lookup-card {
+  margin-top: 10px; border-radius: 12px; overflow: hidden;
+  border: 1.5px solid #B5D4F4; background: #f5f9ff;
+}
+.lookup-header {
+  background: #185FA5; color: white; padding: 10px 14px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.lookup-name    { font-size: 15px; font-weight: 700; }
+.lookup-trainer { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.lookup-body    { padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lookup-stat    { background: white; border-radius: 8px; padding: 10px 12px; border: 1px solid #e0ecf8; }
+.ls-val         { font-size: 17px; font-weight: 700; color: #0C447C; }
+.ls-val.red     { color: #A32D2D; }
+.ls-val.green   { color: #27500A; }
+.ls-val.amber   { color: #854F0B; }
+.ls-lbl         { font-size: 11px; color: #888; margin-top: 2px; }
+.lookup-full    { grid-column: 1 / -1; }
+.lookup-next    { grid-column: 1 / -1; background: #FFF8EE; border: 1px solid #FAC775; border-radius: 8px; padding: 10px 12px; }
+.lookup-next .ls-val { font-size: 14px; color: #854F0B; }
+.lookup-overdue .ls-val { color: #A32D2D !important; }
+.lookup-history { margin-top: 10px; }
+.history-title  { font-size: 12px; font-weight: 700; color: #444; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.history-row    {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 10px; background: white; border-radius: 8px; margin-bottom: 5px;
+  border: 1px solid #e0ecf8; font-size: 13px;
+}
+.history-row .h-num  { font-weight: 700; color: #185FA5; min-width: 28px; }
+.history-row .h-date { color: #555; flex: 1; padding: 0 8px; }
+.history-row .h-amt  { font-weight: 700; color: #27500A; }
+.history-row.overdue { border-color: #F09595; background: #fff5f5; }
+.history-row.overdue .h-date { color: #A32D2D; }
+.history-row.pending { opacity: 0.5; }
+.lookup-action {
+  padding: 12px 14px; border-top: 1px solid #e8f0fb;
+}
+.lookup-fill-btn {
+  width: 100%; min-height: 44px; background: #185FA5; color: white;
+  border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.lookup-multiple { padding: 8px 0; }
+.lookup-suggestion {
+  padding: 12px 14px; cursor: pointer; border-bottom: 1px solid #e8f0fb;
+  font-size: 14px; color: #1a1a1a; display: flex; justify-content: space-between; align-items: center;
+}
+.lookup-suggestion:last-child { border-bottom: none; }
+.lookup-suggestion:hover { background: #E6F1FB; }
+.sug-name { font-weight: 600; color: #0C447C; }
+.sug-sub  { font-size: 12px; color: #888; margin-top: 2px; }
+.lookup-searching { padding: 12px 14px; font-size: 13px; color: #888; }
+.lookup-new-badge {
+  display: inline-block; margin-top: 8px; padding: 6px 12px;
+  background: #EAF3DE; border-radius: 8px; font-size: 12px; color: #27500A; font-weight: 500;
+}
+
+/* ── RECORD PAYMENT PANEL ── */
+.record-pay-panel {
+  display: none; background: #f5f9ff; border: 1.5px solid #B5D4F4;
+  border-radius: 12px; padding: 16px; margin-top: 14px;
+}
+.record-pay-panel.show { display: block; }
+.rp-title { font-size: 13px; font-weight: 700; color: #0C447C; margin-bottom: 14px; }
+.rp-summary {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;
+}
+.rp-stat { background: white; border-radius: 8px; padding: 10px 12px; border: 1px solid #e0ecf8; text-align: center; }
+.rp-val { font-size: 16px; font-weight: 700; color: #0C447C; }
+.rp-val.red { color: #A32D2D; }
+.rp-val.green { color: #27500A; }
+.rp-lbl { font-size: 11px; color: #888; margin-top: 2px; }
+
+/* ── PAYMENT MODE TOGGLE (RECORD) ── */
+.hidden { display: none !important; }
+}
+</style>
+</head>
+<body class="app-body">
+
+<header class="calix-appbar" role="navigation" aria-label="Main">
+  <div class="calix-appbar-inner">
+    <button type="button" class="calix-tab active" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
+    <button type="button" class="calix-tab" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
+  </div>
+</header>
+<p class="calix-demonote">Onboarding client search / save uses Google Apps Script when deployed. Locally, search returns “new client” and submit simulates success.</p>
+
+<div id="session-panel" class="active">
+<div class="hdr">
+  <div class="hdr-dots"></div>
+  <div class="hdr-inner">
+    <div class="hdr-brand">Calixlab · Vibefam</div>
+    <div class="hdr-title">Session <span>Log</span></div>
+    <div class="hdr-sub">Submit immediately after every session.</div>
+    <div class="hdr-date" id="hDate">📅 —</div>
+  </div>
+</div>
+
+<div class="prog">
+  <div class="prog-top">
+    <span class="prog-step" id="pStep">Trainer</span>
+    <span class="prog-frac" id="pFrac">0 / 5</span>
+  </div>
+  <div class="prog-bar"><div class="prog-fill" id="pFill" style="width:0%"></div></div>
+</div>
+
+<div id="mainForm">
+<div class="body">
+
+  <!-- 1 · Trainer -->
+  <div class="card" id="c1">
+    <div class="lbl">Trainer <span class="r">*</span></div>
+    <div class="sw">
+      <select id="trainerSel" onchange="S.trainer=this.value;sync()">
+        <option value="">— Select your name —</option>
+        <option>Kendy</option>
+        <option>Trainer B</option>
+        <option>Trainer C</option>
+      </select>
+    </div>
+    <div class="ferr" id="er1">Please select your name.</div>
+  </div>
+
+  <!-- 2 · Client + session info + AUTO LEAD -->
+  <div class="card" id="c2">
+    <div class="lbl">Client Name <span class="r">*</span></div>
+    <div class="aw">
+      <input class="ai" id="clientIn" type="text" placeholder="Type name to search…" autocomplete="off"
+        oninput="onAcIn()" onkeydown="onAcKey(event)" onfocus="onAcFocus()" />
+      <div class="adrop" id="aDrop"></div>
+    </div>
+    <p class="hint">Type 2+ letters. Not in list? Type full name and continue.</p>
+    <div class="ferr" id="er2">Please enter a client name.</div>
+
+    <!-- Session info panel -->
+    <div class="si" id="siPanel">
+      <div class="si-ttl">📊 Package Status</div>
+      <div class="si-grid">
+        <div class="si-box ok"  id="si-d"><div class="si-v" id="si-dv">—</div><div class="si-k">Done</div></div>
+        <div class="si-box"     id="si-l"><div class="si-v" id="si-lv">—</div><div class="si-k">Remaining</div></div>
+        <div class="si-box"     id="si-t"><div class="si-v" id="si-tv">—</div><div class="si-k">Total</div></div>
+      </div>
+      <div class="si-next">
+        <span style="font-size:22px" id="si-ico">🎯</span>
+        <div class="si-nb">
+          <strong id="si-nt">—</strong>
+          <span id="si-ns">—</span>
+        </div>
+      </div>
+      <div class="si-foot" id="si-ft">—</div>
+    </div>
+  </div>
+
+  <!-- 3 · Date -->
+  <div class="card" id="c3">
+    <div class="lbl">Session Date <span class="r">*</span></div>
+    <input type="date" id="sessDate" onchange="S.date=this.value;sync()" />
+    <div class="ferr" id="er3">Please select the session date.</div>
+  </div>
+
+  <!-- 4 · Session Type -->
+  <div class="card" id="c4">
+    <div class="lbl">Session Type <span class="r">*</span></div>
+    <div class="chips">
+      <button class="chip" type="button" onclick="pickT('Group Class',this,'t-g')">🏃 Group</button>
+      <button class="chip" type="button" onclick="pickT('Semi-Private',this,'t-s')">👥 Semi-Private</button>
+      <button class="chip" type="button" onclick="pickT('Private',this,'t-p')">🎯 Private</button>
+    </div>
+    <div class="ferr" id="er4">Please select session type.</div>
+  </div>
+
+  <!-- 5 · Lead Source — AUTO FILLED from client DB -->
+  <div class="card" id="c5">
+    <div class="lbl">Lead Source</div>
+    <div class="lead-auto" id="leadBox">
+      <span class="lead-empty">Select a client above — lead source will appear automatically</span>
+    </div>
+    <p class="lead-locked hint" id="leadHint" style="display:none">
+      🔒 Set by admin in client database. Contact admin if incorrect.
+    </p>
+    <div class="ferr" id="er5">Lead source not found. Type client name exactly as registered.</div>
+  </div>
+
+  <!-- 6 · Session Number -->
+  <div class="card" id="c6">
+    <div class="lbl">Session Number <span class="r">*</span></div>
+    <div class="ctr" id="ctrEl">
+      <button class="cb" type="button" onclick="adj(-1)">−</button>
+      <input class="cv" type="number" id="sessNo" value="1" min="1" max="999" oninput="onNoIn()" />
+      <button class="cb" type="button" onclick="adj(1)">+</button>
+    </div>
+    <p class="hint" id="noHint">Select a client above to see the suggested session number.</p>
+    <div class="ferr" id="er6">Please enter a valid session number.</div>
+  </div>
+
+</div><!-- /body -->
+
+<!-- Signature -->
+<div style="padding:0 16px;max-width:560px;margin:0 auto;">
+  <div class="sign-card">
+    <div class="sign-ttl">✍️ Client Sign-In</div>
+    <div class="sign-sub">Hand your phone to the client. They sign and tick to confirm attendance.</div>
+    <div class="pad-wrap">
+      <div class="pad-lbl" id="padLbl">Touch here to sign<br><span style="font-size:11px">Client's signature</span></div>
+      <canvas id="signCv"></canvas>
+    </div>
+    <button class="btn-clr" type="button" onclick="clearSign()">🗑  Clear signature</button>
+    <div class="cfm-row" id="cfmRow" onclick="toggleCfm()">
+      <input type="checkbox" id="cfmChk" onclick="event.stopPropagation();toggleCfm()" />
+      <div class="cfm-txt">
+        I, <strong id="cfmName">the client</strong>, confirm I attended this session today.
+      </div>
+    </div>
+    <div class="ferr" id="er7" style="margin-top:8px;">Client must sign and tick to confirm attendance.</div>
+  </div>
+
+  <!-- Live preview -->
+  <div class="preview" id="prevEl" style="margin-top:10px;">
+    <div class="prev-ttl">Session Summary</div>
+    <div class="prev-grid">
+      <div class="pi"><div class="pk">Trainer</div><div class="pv" id="pv1">—</div></div>
+      <div class="pi"><div class="pk">Client</div><div class="pv" id="pv2">—</div></div>
+      <div class="pi"><div class="pk">Date</div><div class="pv" id="pv3">—</div></div>
+      <div class="pi"><div class="pk">Session #</div><div class="pv" id="pv4">—</div></div>
+      <div class="pi"><div class="pk">Type</div><div class="pv" id="pv5">—</div></div>
+      <div class="pi"><div class="pk">Lead</div><div class="pv" id="pv6">—</div></div>
+    </div>
+  </div>
+
+  <button class="btn-sub" type="button" onclick="doSubmit()">Submit Session →</button>
+  <p class="sub-note">Sessions not submitted = sessions not paid. Do not submit twice.</p>
+</div>
+</div><!-- /mainForm -->
+
+<!-- Success -->
+<div class="success" id="successScr">
+  <div class="s-ring">✅</div>
+  <div class="s-title">Session Logged!</div>
+  <div class="s-sub">Recorded successfully.<br>Admin will see this in the Master Log.</div>
+  <div class="s-summ" id="sSumm"></div>
+  <div class="copy-box">
+    <div class="copy-lbl">Copy row → paste into Master Log</div>
+    <div class="copy-txt" id="copyTxt"></div>
+    <button class="btn-copy" onclick="doCopy()">📋 Copy Row</button>
+  </div>
+  <button class="btn-new" onclick="location.reload()">Log Another Session</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════
+// CLIENT DATABASE
+// lead: 'Calixlab' = 0.6 | 'Own' = 0.7
+// Admin updates 'done' monthly to keep session counter accurate
+// ════════════════════════════════════════════════════
+const CLIENTS = [
+  { name:"Jes Chu Han",               lead:"Own",      pkg:"Committed (8)",       done:3,  total:8  },
+  { name:"Pelita",                    lead:"Calixlab", pkg:"Transformation (16)", done:7,  total:16 },
+  { name:"Ridzmall",                  lead:"Calixlab", pkg:"Serious (12)",        done:2,  total:12 },
+  { name:"Money Yaw Woon Yi",         lead:"Own",      pkg:"Transformation (16)", done:5,  total:16 },
+  { name:"Megan",                     lead:"Own",      pkg:"Transformation (16)", done:9,  total:16 },
+  { name:"Sean & Sarah",              lead:"Calixlab", pkg:"Serious (12)",        done:4,  total:12 },
+  { name:"Sean Sean",                 lead:"Own",      pkg:"Serious (12)",        done:3,  total:12 },
+  { name:"Hanna",                     lead:"Calixlab", pkg:"Transformation (16)", done:6,  total:16 },
+  { name:"Bee Ee & Catherine",        lead:"Own",      pkg:"VIP (50)",            done:9,  total:50 },
+  { name:"Ashley Gan & Lynn Foo",     lead:"Own",      pkg:"VIP (50)",            done:26, total:50 },
+  { name:"Loo Yen Nee",               lead:"Calixlab", pkg:"Transformation (16)", done:7,  total:16 },
+  { name:"Arwa Kaddur",               lead:"Calixlab", pkg:"Starter (4)",         done:3,  total:4  },
+  { name:"Theodora",                  lead:"Own",      pkg:"Starter (4)",         done:1,  total:4  },
+  { name:"Jenifer",                   lead:"Calixlab", pkg:"Transformation (16)", done:2,  total:16 },
+  { name:"Chong Hun Yao",             lead:"Own",      pkg:"Transformation (16)", done:14, total:16 },
+  { name:"Tan Jian Liang & Khoo",     lead:"Calixlab", pkg:"Transformation (16)", done:12, total:16 },
+  { name:"Ronald",                    lead:"Own",      pkg:"Serious (12)",        done:2,  total:12 },
+  { name:"Chan Farn Xuan",            lead:"Calixlab", pkg:"Serious (12)",        done:2,  total:12 },
+  { name:"Lynn Wong",                 lead:"Own",      pkg:"VIP (50)",            done:13, total:50 },
+  { name:"Paul",                      lead:"Calixlab", pkg:"Transformation (16)", done:10, total:16 },
+  { name:"Emmy",                      lead:"Own",      pkg:"Transformation (16)", done:3,  total:16 },
+  { name:"Tan Tee Wan",               lead:"Calixlab", pkg:"Serious (12)",        done:4,  total:12 },
+  { name:"Dennis & Aubrey",           lead:"Own",      pkg:"Transformation (16)", done:12, total:16 },
+  { name:"Winny & Kok",               lead:"Calixlab", pkg:"Starter (4)",         done:1,  total:4  },
+  { name:"Jayce Low Chun Lan",        lead:"Own",      pkg:"Transformation (16)", done:8,  total:16 },
+  { name:"Kitt",                      lead:"Own",      pkg:"Transformation (16)", done:11, total:16 },
+  { name:"Edward & Edmund Chung",     lead:"Calixlab", pkg:"VIP (50)",            done:46, total:50 },
+  { name:"Edmund Chung",              lead:"Own",      pkg:"VIP (50)",            done:2,  total:50 },
+  { name:"Edward Chung",              lead:"Own",      pkg:"VIP (50)",            done:3,  total:50 },
+  { name:"Ravin",                     lead:"Calixlab", pkg:"Transformation (16)", done:7,  total:16 },
+];
+
+// ── STATE ────────────────────────────────────────
+const S = {
+  trainer:'', client:'', clientData:null,
+  date:'', type:'', lead:'', no:1,
+  signed:false, confirmed:false
+};
+let acRes=[], acHi=-1;
+
+// ── INIT ─────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', ()=>{
+  const n=new Date();
+  document.getElementById('sessDate').value = n.toISOString().split('T')[0];
+  S.date = n.toISOString().split('T')[0];
+  document.getElementById('hDate').textContent = '📅 '
+    + n.toLocaleDateString('en-MY',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  initCanvas();
+  sync();
+});
+
+// ── AUTOCOMPLETE ──────────────────────────────────
+function onAcIn(){
+  const q=document.getElementById('clientIn').value.trim();
+  clearErr();
+  // if user retypes, reset
+  if(S.clientData && S.clientData.name!==q){
+    S.clientData=null; S.client=q;
+    document.getElementById('clientIn').classList.remove('filled');
+    document.getElementById('siPanel').classList.remove('show');
+    setLeadBox(null);
+  } else { S.client=q; }
+  if(q.length<2){ closeDrop(); sync(); return; }
+  const ql=q.toLowerCase();
+  acRes=CLIENTS.filter(c=>c.name.toLowerCase().includes(ql));
+  acHi=-1;
+  const dd=document.getElementById('aDrop');
+  if(!acRes.length){
+    dd.innerHTML=`<div class="aempty">No match — type full name and continue</div>`;
+  } else {
+    dd.innerHTML=acRes.map((c,i)=>{
+      const left=c.total-c.done;
+      const hl=c.name.replace(new RegExp(`(${esc(q)})`,'gi'),'<mark>$1</mark>');
+      const bc=left<=0?'ab-bad':left<=3?'ab-warn':'ab-ok';
+      const bt=left<=0?'⚠️ Package done':left<=3?`${left} left ⚠️`:`${left} left`;
+      const mult=c.lead==='Calixlab'?'0.6×':'0.7×';
+      return `<div class="aitem" data-i="${i}" onmousedown="pickClient(${i})">
+        <span>${hl}</span>
+        <div class="aitem-right">
+          <span class="alead-badge">${mult} ${c.lead}</span>
+          <span class="abadge ${bc}">${bt}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  dd.classList.add('open');
+  sync();
+}
+
+function onAcFocus(){
+  if(document.getElementById('clientIn').value.trim().length>=2) onAcIn();
+}
+function onAcKey(e){
+  const items=document.getElementById('aDrop').querySelectorAll('.aitem');
+  if(e.key==='ArrowDown'){e.preventDefault();acHi=Math.min(acHi+1,items.length-1);hiLt(items);}
+  else if(e.key==='ArrowUp'){e.preventDefault();acHi=Math.max(acHi-1,0);hiLt(items);}
+  else if(e.key==='Enter'&&acHi>=0){e.preventDefault();pickClient(acHi);}
+  else if(e.key==='Escape')closeDrop();
+}
+function hiLt(items){items.forEach((el,i)=>el.classList.toggle('hi',i===acHi));}
+function closeDrop(){document.getElementById('aDrop').classList.remove('open');}
+document.addEventListener('click',e=>{if(!e.target.closest('.aw'))closeDrop();});
+function esc(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+
+function pickClient(i){
+  const c=acRes[i]; if(!c)return;
+  S.client=c.name; S.clientData=c;
+  document.getElementById('clientIn').value=c.name;
+  document.getElementById('clientIn').classList.add('filled');
+  document.getElementById('cfmName').textContent=c.name;
+  closeDrop();
+  showSI(c);
+  setLeadBox(c);
+  sync(); clearErr();
+}
+
+// ── SESSION INFO PANEL ────────────────────────────
+function showSI(c){
+  const done=c.done, total=c.total, left=total-done, next=done+1;
+  document.getElementById('si-dv').textContent=done;
+  document.getElementById('si-lv').textContent=left;
+  document.getElementById('si-tv').textContent=total;
+  const lb=document.getElementById('si-l');
+  lb.className='si-box '+(left<=0?'bad':left<=3?'warn':'ok');
+  if(left<=0){
+    document.getElementById('si-ico').textContent='⚠️';
+    document.getElementById('si-nt').textContent='Package complete!';
+    document.getElementById('si-ns').textContent='No sessions remaining — renewal needed before this session.';
+  } else {
+    document.getElementById('si-ico').textContent='🎯';
+    document.getElementById('si-nt').textContent=`Today is Session ${next}`;
+    document.getElementById('si-ns').textContent=
+      left===1?'🔴 Last session — discuss renewal NOW':
+      left<=3?`🟡 ${left-1} session(s) left after today — start renewal conversation`:
+      `${left-1} session(s) remaining after today`;
+  }
+  document.getElementById('si-ft').textContent=`📦 ${c.pkg}  ·  ${total} sessions total`;
+  const sug=Math.max(1,next);
+  document.getElementById('sessNo').value=sug; S.no=sug;
+  document.getElementById('ctrEl').classList.toggle('on',sug>1);
+  document.getElementById('noHint').textContent=`💡 Suggested: Session ${sug} — adjust only if incorrect`;
+  document.getElementById('siPanel').classList.add('show');
+}
+
+// ── AUTO LEAD SOURCE ──────────────────────────────
+function setLeadBox(c){
+  const box=document.getElementById('leadBox');
+  const hint=document.getElementById('leadHint');
+  if(!c){
+    box.className='lead-auto';
+    box.innerHTML='<span class="lead-empty">Select a client above — lead source will appear automatically</span>';
+    hint.style.display='none';
+    S.lead='';
+    return;
+  }
+  const mult=c.lead==='Calixlab'?'0.6×':'0.7×';
+  const cls=c.lead==='Calixlab'?'set-calix':'set-own';
+  box.className=`lead-auto ${cls}`;
+  box.innerHTML=`
+    <div class="lead-left">
+      <span class="lead-mult">${mult}</span>
+      <span class="lead-name">${c.lead}</span>
+    </div>
+    <span class="lead-right">Auto-filled ✓</span>`;
+  hint.style.display='block';
+  S.lead=c.lead;
+  sync();
+}
+
+// ── OTHER FIELDS ──────────────────────────────────
+function pickT(v,el,cls){
+  S.type=v;
+  document.querySelectorAll('.chip').forEach(c=>c.className='chip');
+  el.classList.add(cls);
+  sync(); clearErr();
+}
+function adj(d){
+  const inp=document.getElementById('sessNo');
+  const v=Math.max(1,Math.min(999,(parseInt(inp.value)||1)+d));
+  inp.value=v; S.no=v;
+  document.getElementById('ctrEl').classList.toggle('on',v>1);
+  sync();
+}
+function onNoIn(){
+  S.no=parseInt(document.getElementById('sessNo').value)||1;
+  document.getElementById('ctrEl').classList.toggle('on',S.no>1);
+  sync();
+}
+
+// ── SIGNATURE ─────────────────────────────────────
+let ctx2d,painting=false;
+function initCanvas(){
+  const cv=document.getElementById('signCv');
+  const dpr=window.devicePixelRatio||1;
+  cv.width=(cv.offsetWidth||528)*dpr; cv.height=130*dpr; cv.style.height='130px';
+  ctx2d=cv.getContext('2d'); ctx2d.scale(dpr,dpr);
+  ctx2d.strokeStyle='#0e6b44'; ctx2d.lineWidth=2.5; ctx2d.lineCap='round'; ctx2d.lineJoin='round';
+  const pos=e=>{const r=cv.getBoundingClientRect();const s=e.touches?e.touches[0]:e;return{x:s.clientX-r.left,y:s.clientY-r.top};};
+  cv.addEventListener('mousedown', e=>{painting=true;const p=pos(e);ctx2d.beginPath();ctx2d.moveTo(p.x,p.y);});
+  cv.addEventListener('mousemove', e=>{if(!painting)return;const p=pos(e);ctx2d.lineTo(p.x,p.y);ctx2d.stroke();markSigned();});
+  cv.addEventListener('mouseup',   ()=>painting=false);
+  cv.addEventListener('touchstart',e=>{e.preventDefault();painting=true;const p=pos(e);ctx2d.beginPath();ctx2d.moveTo(p.x,p.y);},{passive:false});
+  cv.addEventListener('touchmove', e=>{e.preventDefault();if(!painting)return;const p=pos(e);ctx2d.lineTo(p.x,p.y);ctx2d.stroke();markSigned();},{passive:false});
+  cv.addEventListener('touchend',  ()=>painting=false);
+}
+function markSigned(){S.signed=true;document.getElementById('padLbl').style.opacity='0';}
+function clearSign(){
+  ctx2d.clearRect(0,0,document.getElementById('signCv').width,document.getElementById('signCv').height);
+  S.signed=false; document.getElementById('padLbl').style.opacity='1';
+}
+function toggleCfm(){
+  const chk=document.getElementById('cfmChk');
+  chk.checked=!chk.checked; S.confirmed=chk.checked;
+  document.getElementById('cfmRow').classList.toggle('on',chk.checked);
+  clearErr(); sync();
+}
+
+// ── PROGRESS + PREVIEW ────────────────────────────
+function sync(){
+  const t=document.getElementById('clientIn').value.trim();
+  if(t) S.client=t;
+  S.date=document.getElementById('sessDate').value;
+  const steps=[!!S.trainer,!!S.client,!!S.date,!!S.type,!!S.lead];
+  const done=steps.filter(Boolean).length;
+  document.getElementById('pFill').style.width=(done/5*100)+'%';
+  document.getElementById('pFrac').textContent=done+' / 5';
+  const lbls=['Trainer','Client','Date','Session Type','Lead Source','✅ Ready to submit'];
+  document.getElementById('pStep').textContent=done<5?lbls[done]:lbls[5];
+  const any=S.trainer||S.client||S.type||S.lead;
+  document.getElementById('prevEl').classList.toggle('on',!!any);
+  const fmt=d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'}):'—';
+  document.getElementById('pv1').textContent=S.trainer||'—';
+  document.getElementById('pv2').textContent=S.client||'—';
+  document.getElementById('pv3').textContent=fmt(S.date);
+  document.getElementById('pv4').textContent=S.no||'—';
+  document.getElementById('pv5').textContent=S.type||'—';
+  document.getElementById('pv6').textContent=S.lead?(S.lead+' ('+(S.lead==='Calixlab'?'0.6':'0.7')+'×)'):'—';
+}
+
+// ── ERRORS ────────────────────────────────────────
+function clearErr(){
+  document.querySelectorAll('.ferr').forEach(e=>e.style.display='none');
+  document.querySelectorAll('.card').forEach(c=>c.classList.remove('err-card'));
+}
+function showE(id,cid){document.getElementById(id).style.display='block';if(cid)document.getElementById(cid).classList.add('err-card');}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ── SUBMIT ────────────────────────────────────────
+function doSubmit(){
+  clearErr(); sync();
+  const t2=document.getElementById('clientIn').value.trim();
+  if(t2) S.client=t2;
+  let ok=true;
+  if(!S.trainer){showE('er1','c1');ok=false;}
+  if(!S.client) {showE('er2','c2');ok=false;}
+  if(!S.date)   {showE('er3','c3');ok=false;}
+  if(!S.type)   {showE('er4','c4');ok=false;}
+  if(!S.lead)   {showE('er5','c5');ok=false;}
+  if(!S.no||S.no<1){showE('er6','c6');ok=false;}
+  if(!S.signed||!S.confirmed){document.getElementById('er7').style.display='block';ok=false;}
+  if(!ok){toast('⚠️ Please complete all required fields');window.scrollTo({top:0,behavior:'smooth'});return;}
+
+  const now=new Date(), ts=now.toLocaleString('en-MY');
+  const fmt=d=>new Date(d+'T00:00:00').toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'});
+  const mult=S.lead==='Calixlab'?'0.60':'0.70';
+
+  document.getElementById('mainForm').style.display='none';
+  document.getElementById('successScr').classList.add('on');
+
+  const rows=[['Timestamp',ts],['Trainer',S.trainer],['Client',S.client],
+    ['Date',fmt(S.date)],['Session #',S.no],['Type',S.type],
+    ['Lead',S.lead+' ('+mult+'×)'],['Confirmed','✅ Client signed']];
+  document.getElementById('sSumm').innerHTML=rows.map(([k,v])=>
+    `<div class="s-row"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('');
+
+  const row=[ts,fmt(S.date),S.trainer,S.client,S.type,'—',S.lead,S.no,'—','YES',
+    now.getMonth()+1,now.getFullYear(),'—','—','—','—','—','—','—',mult,'—','—','—','NO'].join('\t');
+  document.getElementById('copyTxt').textContent=row;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function doCopy(){
+  navigator.clipboard.writeText(document.getElementById('copyTxt').textContent).then(()=>{
+    const b=document.querySelector('.btn-copy');
+    b.textContent='✅ Copied!'; setTimeout(()=>b.textContent='📋 Copy Row',2500);
+  });
+}
+</script>
+</div>
+
+<div id="onboard-panel">
+<div class="header">
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+  </div>
+  <h1>Calixlab Empire</h1>
+  <p>Client Onboarding &amp; Payment</p>
+</div>
+
+<!-- MODE SWITCHER -->
+<div class="mode-switcher">
+  <button class="mode-btn active" id="modeNew" onclick="switchMode('new')">➕ New Client</button>
+  <button class="mode-btn" id="modeRecord" onclick="switchMode('record')">💳 Record Payment</button>
+</div>
+
+<div id="error-banner" class="error-banner"></div>
+
+<!-- PROGRESS OVERLAY -->
+<div class="progress-overlay" id="progressOverlay">
+  <div class="progress-box">
+    <div class="progress-spinner"></div>
+    <p id="progressMsg">Saving…</p>
+    <small>Please do not close this page</small>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     NEW CLIENT FORM
+══════════════════════════════════════════ -->
+<div id="newClientForm">
+
+  <!-- 1. PERSONAL INFO -->
+  <div class="card">
+    <div class="section-title">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+      Personal Information
+    </div>
+    <div class="field">
+      <label>Full Name <span class="req">*</span></label>
+      <input type="text" id="fullName" placeholder="As per IC / Passport" autocomplete="off" oninput="updateWaiverName(); onNameInput(this.value, 'new')"/>
+      <div id="lookupResults"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Phone Number <span class="req">*</span></label>
+        <input type="tel" id="phone" placeholder="01X-XXXXXXX"/>
+      </div>
+      <div class="field">
+        <label>Email <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="email@example.com"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>IC / Passport Number <span class="req">*</span></label>
+      <input type="text" id="ic" placeholder="XXXXXX-XX-XXXX" inputmode="numeric"/>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Emergency Contact Name <span class="req">*</span></label>
+        <input type="text" id="emergencyContact" placeholder="Full name"/>
+      </div>
+      <div class="field">
+        <label>Emergency Contact Phone <span class="req">*</span></label>
+        <input type="tel" id="emergencyPhone" placeholder="01X-XXXXXXX"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. HEALTH SCREENING -->
+  <div class="card">
+    <div class="section-title green">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      Health Screening
+    </div>
+    <div class="field">
+      <label>Fitness Level <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-fitnessLevel">
+        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Beginner">Beginner</button>
+        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Intermediate">Intermediate</button>
+        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Advanced">Advanced</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Fitness Goals <span class="req">*</span> <span class="sublabel">Select all that apply</span></label>
+      <div class="chip-group" id="grp-fitnessGoals">
+        <button type="button" class="chip-btn goal-c" data-val="Weight Loss">Weight Loss</button>
+        <button type="button" class="chip-btn goal-c" data-val="Muscle Gain">Muscle Gain</button>
+        <button type="button" class="chip-btn goal-c" data-val="Endurance">Endurance</button>
+        <button type="button" class="chip-btn goal-c" data-val="Flexibility">Flexibility</button>
+        <button type="button" class="chip-btn goal-c" data-val="Calisthenics Skill">Calisthenics Skill</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Medical Conditions <span class="sublabel">Select all that apply</span></label>
+      <div class="chip-group" id="grp-medical">
+        <button type="button" class="chip-btn none-c active" data-val="None" data-none="1">None</button>
+        <button type="button" class="chip-btn" data-val="Hypertension">Hypertension</button>
+        <button type="button" class="chip-btn" data-val="Diabetes">Diabetes</button>
+        <button type="button" class="chip-btn" data-val="Asthma">Asthma</button>
+        <button type="button" class="chip-btn" data-val="Heart Condition">Heart Condition</button>
+        <button type="button" class="chip-btn" data-val="Joint / Knee Pain">Joint / Knee Pain</button>
+        <button type="button" class="chip-btn" data-val="Back Pain">Back Pain</button>
+        <button type="button" class="chip-btn" data-val="Shoulder Injury">Shoulder Injury</button>
+        <button type="button" class="chip-btn" data-val="Post-Surgery">Post-Surgery</button>
+        <button type="button" class="chip-btn" data-val="Pregnant / Postnatal">Pregnant / Postnatal</button>
+        <button type="button" class="chip-btn" data-val="Other" data-other-trigger="medOtherBlock">Other</button>
+      </div>
+      <div class="hblock" id="medOtherBlock" style="margin-top:10px;">
+        <input type="text" id="medicalOther" placeholder="Describe your condition…"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. TRAINER & PACKAGE -->
+  <div class="card">
+    <div class="section-title amber">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+      Trainer &amp; Package
+    </div>
+    <div class="field">
+      <label>Assigned Trainer <span class="req">*</span></label>
+      <div class="trainer-select-row">
+        <select id="trainerSelect" onchange="document.getElementById('trainerNameHidden').value=this.value">
+          <option value="">— Select Trainer —</option>
+        </select>
+        <button type="button" class="icon-btn add-btn" onclick="togglePanel('addTrainerPanel','deleteTrainerPanel')">+</button>
+        <button type="button" class="icon-btn del-btn" onclick="togglePanel('deleteTrainerPanel','addTrainerPanel')">🗑</button>
+      </div>
+      <div class="add-trainer-panel" id="addTrainerPanel">
+        <label style="margin-bottom:8px;font-size:13px;color:#185FA5;">New trainer name</label>
+        <input type="text" id="newTrainerName" placeholder="Enter full name…"/>
+        <div class="panel-btns">
+          <button type="button" class="btn-confirm" onclick="confirmAddTrainer()">Add Trainer</button>
+          <button type="button" class="btn-cancel" onclick="closePanel('addTrainerPanel')">Cancel</button>
+        </div>
+      </div>
+      <div class="delete-trainer-panel" id="deleteTrainerPanel">
+        <p>Tap Remove to delete a trainer from the list.</p>
+        <div class="trainer-delete-list" id="trainerDeleteList"></div>
+        <button type="button" class="close-panel-btn" onclick="closePanel('deleteTrainerPanel')">Close</button>
+      </div>
+      <input type="hidden" id="trainerNameHidden"/>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Start Date <span class="req">*</span></label>
+        <input type="date" id="startDate"/>
+      </div>
+      <div class="field">
+        <label>Lead Type <span class="req">*</span></label>
+        <div class="toggle-group" id="grp-leadType" style="flex-direction:column;">
+          <button type="button" class="toggle-btn" data-group="leadType" data-val="Calixlab Lead (60%)" style="text-align:left;">Calixlab's Lead (60%)</button>
+          <button type="button" class="toggle-btn" data-group="leadType" data-val="Trainer Lead (70%)" style="text-align:left;">Trainer's Lead (70%)</button>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Package Type <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-packageType">
+        <button type="button" class="toggle-btn" data-group="packageType" data-val="1-1 Personal Training">1-1 Personal Training</button>
+        <button type="button" class="toggle-btn" data-group="packageType" data-val="1-2 Personal Training">1-2 Personal Training</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Number of Sessions <span class="req">*</span></label>
+      <div class="preset-row">
+        <button type="button" class="preset-btn" data-sessions="6">6</button>
+        <button type="button" class="preset-btn" data-sessions="12">12</button>
+        <button type="button" class="preset-btn" data-sessions="24">24</button>
+        <button type="button" class="preset-btn" data-sessions="custom">Custom</button>
+      </div>
+      <input type="number" id="sessions" placeholder="Or enter manually" min="1" inputmode="numeric"/>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Rate / Session (RM) <span class="req">*</span></label>
+        <input type="number" id="ratePerSession" placeholder="e.g. 150" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="field">
+        <label>Total Package Value (RM)</label>
+        <input type="number" id="totalPackageValue" placeholder="Auto-calculated" readonly/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. HOW DID YOU FIND US -->
+  <div class="card">
+    <div class="section-title purple">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      How Did You Find Us?
+    </div>
+    <div class="field">
+      <label>Discovery Source <span class="req">*</span></label>
+      <div class="chip-group" id="grp-source">
+        <button type="button" class="chip-btn source-c" data-val="Instagram">📸 Instagram</button>
+        <button type="button" class="chip-btn source-c" data-val="Facebook">👤 Facebook</button>
+        <button type="button" class="chip-btn source-c" data-val="Family">👨‍👩‍👧 Family</button>
+        <button type="button" class="chip-btn source-c" data-val="Friends">🤝 Friends</button>
+        <button type="button" class="chip-btn source-c" data-val="Walk In">🚶 Walk In</button>
+        <button type="button" class="chip-btn source-c" data-val="Other" data-other-trigger="sourceOtherBlock">💬 Other</button>
+      </div>
+      <div class="hblock" id="sourceOtherBlock" style="margin-top:10px;">
+        <input type="text" id="sourceOther" placeholder="Please specify…"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. PAYMENT DETAILS -->
+  <div class="card">
+    <div class="section-title purple">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      Payment Details
+    </div>
+    <div class="field">
+      <label>Payment Method <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-paymentMode">
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Touch N Go">Touch N Go</button>
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Card">Card</button>
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Online Bank Transfer">Online Bank Transfer</button>
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Others" data-reveal="othersReveal">Others</button>
+      </div>
+      <div class="others-reveal" id="othersReveal">
+        <input type="text" id="paymentOthers" placeholder="Please specify…" style="margin-top:10px;"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Instalment Plan <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-instalmentPlan">
+        <button type="button" class="toggle-btn active" data-group="instalmentPlan" data-val="No">No — Full Payment</button>
+        <button type="button" class="toggle-btn" data-group="instalmentPlan" data-val="Yes">Yes — Instalment</button>
+      </div>
+    </div>
+    <div id="fullPayBlock">
+      <div class="field">
+        <label>Amount Paid (RM) <span class="req">*</span></label>
+        <input type="number" id="amountPaidFull" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+    </div>
+    <div class="hblock" id="instalBlock">
+      <div class="row2">
+        <div class="field">
+          <label>Total Instalments <span class="req">*</span></label>
+          <select id="totalInstalments" onchange="updateInstalSummary()">
+            <option value="">— Select —</option>
+            <option value="2">2 payments</option>
+            <option value="3">3 payments</option>
+            <option value="4">4 payments</option>
+            <option value="6">6 payments</option>
+            <option value="12">12 payments</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Per Instalment (RM) <span class="req">*</span></label>
+          <input type="number" id="instalmentAmount" placeholder="e.g. 300" min="0" step="0.01" inputmode="decimal" oninput="updateInstalSummary()"/>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>1st Payment Amount (RM) <span class="req">*</span></label>
+          <input type="number" id="firstPayment" placeholder="0.00" min="0" step="0.01" inputmode="decimal" oninput="updateInstalSummary()"/>
+        </div>
+        <div class="field">
+          <label>1st Payment Date <span class="req">*</span></label>
+          <input type="date" id="firstPaymentDate" onchange="updateInstalSummary()"/>
+        </div>
+      </div>
+      <div class="instal-summary" id="instalSummary">
+        <div class="is-row"><span class="is-lbl">Total Package Value</span><span class="is-val" id="is-total">—</span></div>
+        <div class="is-row"><span class="is-lbl">1st Payment</span><span class="is-val" id="is-paid">—</span></div>
+        <div class="is-row"><span class="is-lbl">Balance Remaining</span><span class="is-val" id="is-balance">—</span></div>
+        <div class="is-row"><span class="is-lbl">Per Instalment</span><span class="is-val" id="is-per">—</span></div>
+        <div class="is-row"><span class="is-lbl">Next Payment Due</span><span class="is-val" id="is-next">—</span></div>
+      </div>
+      <div class="due-warn" id="dueWarn">⚠ Trainer reminder: Collect the next instalment on the due date above. Use the 💳 Record Payment tab to record future payments.</div>
+    </div>
+    <div class="field" style="margin-top:8px;">
+      <label>Notes</label>
+      <textarea id="notes" placeholder="Any additional notes…"></textarea>
+    </div>
+  </div>
+
+  <!-- 6. PAYMENT RECEIPT -->
+  <div class="card">
+    <div class="section-title coral">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+      Payment Receipt <span class="req" style="font-size:14px;margin-left:2px;">*</span>
+    </div>
+    <p style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.5;">Upload a photo or PDF of the payment receipt.</p>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="receiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'receipt')"/>
+      <div class="upload-icon">📎</div>
+      <div class="upload-text" id="uploadText">Tap to upload receipt</div>
+      <div class="upload-sub" id="uploadSub">JPG, PNG or PDF — max 10MB</div>
+    </div>
+    <div class="file-preview" id="filePreview">
+      <span style="font-size:20px;" id="fileIcon">📄</span>
+      <span class="file-preview-name" id="fileName">—</span>
+      <button type="button" class="remove-file-btn" onclick="removeFile('receipt')">✕</button>
+    </div>
+  </div>
+
+  <!-- 7. LIABILITY WAIVER -->
+  <div class="card">
+    <div class="section-title teal">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9 11l3 3L22 4"/></svg>
+      Liability Waiver &amp; Consent
+    </div>
+    <div id="waiverClientName" class="waiver-client-name">
+      Waiver for: <span id="waiverNameDisplay">—</span>
+    </div>
+    <div class="waiver-scroll">
+      <h3>CALIXLAB EMPIRE — PERSONAL TRAINING<br>LIABILITY WAIVER &amp; INFORMED CONSENT</h3>
+      <h4>1. Description of Activities</h4>
+      <p>I understand that personal training at Calixlab Empire involves physical exercise activities including but not limited to resistance training, cardiovascular exercise, flexibility training, bodyweight exercises, and calisthenics-based movements.</p>
+      <h4>2. Assumption of Risk</h4>
+      <p>I acknowledge that physical exercise carries inherent risks including muscle soreness, strains, joint discomfort, cardiovascular stress, and aggravation of pre-existing medical conditions. I voluntarily assume full responsibility for any risks, injuries, or damages.</p>
+      <h4>3. Medical Clearance</h4>
+      <p>I confirm that I am in adequate physical condition to participate. I have disclosed all known medical conditions on this form. If my health status changes, I agree to notify my trainer immediately before the next session.</p>
+      <h4>4. Release of Liability</h4>
+      <p>I hereby <strong>release, waive, and discharge Calixlab Empire, its owners, trainers, employees, and agents</strong> from any and all claims, demands, losses, damages, costs, and liabilities arising from my participation in training sessions.</p>
+      <h4>5. Package &amp; Payment Policy</h4>
+      <ul>
+        <li>All purchased sessions are non-refundable once commenced.</li>
+        <li>A minimum of 24 hours' notice is required to reschedule or cancel a session.</li>
+        <li>Instalment payments are due on the agreed dates. Failure to pay may result in suspension of sessions.</li>
+      </ul>
+      <h4>6. Acknowledgement</h4>
+      <p><strong>By signing below, I confirm that I have read, understood, and agree to all terms above.</strong></p>
+    </div>
+    <div class="waiver-read-confirm" onclick="toggleWaiverRead()">
+      <div class="waiver-check" id="waiverCheck"></div>
+      <div class="waiver-read-text">
+        <strong>I have read and understood the full liability waiver above.</strong><br>
+        I agree to all terms and conditions stated in this document.
+      </div>
+    </div>
+    <span class="sig-label">Client Signature <span class="req">*</span></span>
+    <div class="sig-wrap" id="sigWrap">
+      <canvas id="sigPad"></canvas>
+      <div class="sig-toolbar">
+        <span class="sig-hint">Draw your signature above</span>
+        <button type="button" class="sig-clear-btn" onclick="clearSignature()">Clear</button>
+      </div>
+    </div>
+    <div id="sigStatus" class="sig-status"></div>
+    <div style="font-size:12px;color:#888;margin-top:10px;">
+      Date: <span id="waiverDate" style="font-weight:600;color:#444;"></span>
+    </div>
+  </div>
+
+  <div class="submit-wrap" style="margin-bottom:20px;">
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitForm()">Register Client</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     RECORD PAYMENT FORM
+══════════════════════════════════════════ -->
+<div id="recordPayForm" class="hidden">
+  <div class="card">
+    <div class="section-title red">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      Record Instalment Payment
+    </div>
+    <div class="field">
+      <label>Search Client Name <span class="req">*</span></label>
+      <input type="text" id="rpClientSearch" placeholder="Start typing client name…" autocomplete="off"
+        oninput="onNameInput(this.value,'record')"/>
+      <div id="rpLookupResults"></div>
+    </div>
+
+    <!-- Client summary (shown after selection) -->
+    <div id="rpClientSummary" class="hidden">
+      <div style="background:#E6F1FB;border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:700;color:#0C447C;" id="rpSelectedName">—</div>
+        <div style="font-size:12px;color:#555;margin-top:3px;" id="rpSelectedMeta">—</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="rp-summary">
+        <div class="rp-stat">
+          <div class="rp-val green" id="rpAmtPaid">—</div>
+          <div class="rp-lbl">Total Paid</div>
+        </div>
+        <div class="rp-stat">
+          <div class="rp-val red" id="rpOutstanding">—</div>
+          <div class="rp-lbl">Outstanding</div>
+        </div>
+        <div class="rp-stat">
+          <div class="rp-val" id="rpInstalPaid">—</div>
+          <div class="rp-lbl">Instalments Paid</div>
+        </div>
+        <div class="rp-stat">
+          <div class="rp-val amber" id="rpNextDue">—</div>
+          <div class="rp-lbl">Next Payment Due</div>
+        </div>
+      </div>
+
+      <!-- Payment history -->
+      <div class="lookup-history" id="rpHistory" style="margin-bottom:14px;"></div>
+    </div>
+  </div>
+
+  <!-- New payment details (shown after client selected) -->
+  <div class="card hidden" id="rpNewPayCard">
+    <div class="section-title amber">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      New Payment Details
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Payment Amount (RM) <span class="req">*</span></label>
+        <input type="number" id="rpPayAmt" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="field">
+        <label>Payment Date <span class="req">*</span></label>
+        <input type="date" id="rpPayDate"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Payment Method <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-rpPayMethod">
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Touch N Go">Touch N Go</button>
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Card">Card</button>
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Online Bank Transfer">Online Bank Transfer</button>
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Others">Others</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes <span class="sublabel">(optional)</span></label>
+      <textarea id="rpNotes" placeholder="e.g. Instalment #2 paid via TNG…" style="min-height:60px;"></textarea>
+    </div>
+  </div>
+
+  <!-- Receipt upload for record payment -->
+  <div class="card hidden" id="rpReceiptCard">
+    <div class="section-title coral">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+      Upload Payment Receipt <span class="req" style="font-size:14px;margin-left:2px;">*</span>
+    </div>
+    <div class="upload-zone" id="rpUploadZone">
+      <input type="file" id="rpReceiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'rp')"/>
+      <div class="upload-icon">📎</div>
+      <div class="upload-text" id="rpUploadText">Tap to upload receipt</div>
+      <div class="upload-sub" id="rpUploadSub">JPG, PNG or PDF — max 10MB</div>
+    </div>
+    <div class="file-preview" id="rpFilePreview">
+      <span style="font-size:20px;" id="rpFileIcon">📄</span>
+      <span class="file-preview-name" id="rpFileName">—</span>
+      <button type="button" class="remove-file-btn" onclick="removeFile('rp')">✕</button>
+    </div>
+  </div>
+
+  <div class="submit-wrap hidden" id="rpSubmitWrap" style="margin-bottom:20px;">
+    <button type="button" class="submit-btn green-btn" id="rpSubmitBtn" onclick="submitRecordPayment()">
+      Save Payment Record
+    </button>
+  </div>
+</div>
+
+<!-- SUCCESS SCREENS -->
+<div class="success-card" id="successCard">
+  <div style="font-size:48px;margin-bottom:12px;">✓</div>
+  <h2>Registration Complete!</h2>
+  <p id="successMsg">Client has been successfully onboarded.</p>
+  <p id="driveMsg" style="margin-top:8px;font-size:13px;color:#3B6D11;"></p>
+  <button type="button" class="reset-btn" onclick="resetForm('new')">Register Another Client</button>
+</div>
+
+<div class="success-card" id="rpSuccessCard">
+  <div style="font-size:48px;margin-bottom:12px;">💳</div>
+  <h2>Payment Recorded!</h2>
+  <p id="rpSuccessMsg">Payment has been saved successfully.</p>
+  <p id="rpDriveMsg" style="margin-top:8px;font-size:13px;color:#3B6D11;"></p>
+  <button type="button" class="reset-btn" onclick="resetForm('record')">Record Another Payment</button>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+var currentMode = 'new';
+var selectedClientRow = null; // full client data for record payment
+
+// File data
+var receiptFileData = null, receiptFileName = '', receiptMimeType = '';
+var rpFileData = null, rpFileName = '', rpMimeType = '';
+
+// Lookup
+var lookupTimer = null, rpLookupTimer = null;
+var lookupCache = {};
+
+// Waiver
+var waiverRead = false, hasSig = false;
+
+// ══════════════════════════════════════
+// MODE SWITCHER
+// ══════════════════════════════════════
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeNew').classList.toggle('active', mode === 'new');
+  document.getElementById('modeRecord').classList.toggle('active', mode === 'record');
+  document.getElementById('newClientForm').classList.toggle('hidden', mode === 'record');
+  document.getElementById('recordPayForm').classList.toggle('hidden', mode === 'new');
+  document.getElementById('successCard').classList.remove('show');
+  document.getElementById('rpSuccessCard').classList.remove('show');
+  document.getElementById('error-banner').classList.remove('show');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// ══════════════════════════════════════
+// TRAINERS
+// ══════════════════════════════════════
+var trainers = JSON.parse(localStorage.getItem('ptTrainers') || 'null') || ['Alex','Sarah','Hafiz','Nurul'];
+function saveTrainers() { localStorage.setItem('ptTrainers', JSON.stringify(trainers)); }
+function renderTrainers() {
+  var sel = document.getElementById('trainerSelect');
+  var cur = document.getElementById('trainerNameHidden').value;
+  sel.innerHTML = '<option value="">— Select Trainer —</option>';
+  trainers.forEach(function(t) {
+    var o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    if (t === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+  renderDeleteList();
+}
+function renderDeleteList() {
+  var list = document.getElementById('trainerDeleteList');
+  list.innerHTML = '';
+  trainers.forEach(function(t) {
+    var row = document.createElement('div');
+    row.className = 'trainer-delete-row';
+    row.innerHTML = '<span>' + t + '</span><button onclick="deleteTrainer(\'' + t.replace(/'/g,"\\'") + '\')">Remove</button>';
+    list.appendChild(row);
+  });
+}
+function confirmAddTrainer() {
+  var n = document.getElementById('newTrainerName').value.trim();
+  if (!n) { alert('Please enter a trainer name.'); return; }
+  if (trainers.includes(n)) { alert(n + ' already exists.'); return; }
+  trainers.push(n); saveTrainers(); renderTrainers();
+  document.getElementById('trainerSelect').value = n;
+  document.getElementById('trainerNameHidden').value = n;
+  document.getElementById('newTrainerName').value = '';
+  closePanel('addTrainerPanel');
+}
+function deleteTrainer(name) {
+  if (!confirm('Remove "' + name + '"?')) return;
+  trainers = trainers.filter(function(t) { return t !== name; });
+  saveTrainers();
+  if (document.getElementById('trainerNameHidden').value === name) document.getElementById('trainerNameHidden').value = '';
+  renderTrainers();
+}
+function togglePanel(showId, hideId) {
+  document.getElementById(hideId).classList.remove('show');
+  document.getElementById(showId).classList.toggle('show');
+  if (showId === 'deleteTrainerPanel') renderDeleteList();
+}
+function closePanel(id) { document.getElementById(id).classList.remove('show'); }
+
+// ══════════════════════════════════════
+// TOGGLE BUTTONS
+// ══════════════════════════════════════
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.toggle-btn');
+  if (!btn || !btn.dataset.group) return;
+  var group = btn.dataset.group;
+  document.querySelectorAll('.toggle-btn[data-group="' + group + '"]').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  if (group === 'instalmentPlan') {
+    var isYes = btn.dataset.val === 'Yes';
+    document.getElementById('instalBlock').classList.toggle('show', isYes);
+    document.getElementById('fullPayBlock').style.display = isYes ? 'none' : 'block';
+  }
+  if (group === 'paymentMode') {
+    document.getElementById('othersReveal').classList.toggle('show', btn.dataset.val === 'Others');
+  }
+});
+
+// ══════════════════════════════════════
+// CHIP BUTTONS
+// ══════════════════════════════════════
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('.chip-btn');
+  if (!btn) return;
+  // Medical group
+  if (btn.closest('#grp-medical')) {
+    if (btn.dataset.none) {
+      document.querySelectorAll('#grp-medical .chip-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.getElementById('medOtherBlock').classList.remove('show');
+      return;
+    }
+    document.querySelector('#grp-medical .chip-btn[data-none]').classList.remove('active');
+    btn.classList.toggle('active');
+    var otherBtn = document.querySelector('#grp-medical .chip-btn[data-other-trigger]');
+    document.getElementById('medOtherBlock').classList.toggle('show', otherBtn && otherBtn.classList.contains('active'));
+    if (!document.querySelectorAll('#grp-medical .chip-btn.active:not([data-none])').length)
+      document.querySelector('#grp-medical .chip-btn[data-none]').classList.add('active');
+    return;
+  }
+  // Source group — single select
+  if (btn.closest('#grp-source')) {
+    document.querySelectorAll('#grp-source .chip-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    var sourceOtherBtn = document.querySelector('#grp-source .chip-btn[data-other-trigger]');
+    document.getElementById('sourceOtherBlock').classList.toggle('show', sourceOtherBtn && sourceOtherBtn.classList.contains('active'));
+    return;
+  }
+  btn.classList.toggle('active');
+});
+
+// ══════════════════════════════════════
+// SESSION PRESETS
+// ══════════════════════════════════════
+document.querySelectorAll('.preset-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    if (btn.dataset.sessions !== 'custom') { document.getElementById('sessions').value = btn.dataset.sessions; calcTotal(); }
+    else { document.getElementById('sessions').value = ''; document.getElementById('sessions').focus(); }
+  });
+});
+document.getElementById('sessions').addEventListener('input', function() {
+  document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+  calcTotal();
+});
+document.getElementById('ratePerSession').addEventListener('input', calcTotal);
+function calcTotal() {
+  var s = parseInt(document.getElementById('sessions').value) || 0;
+  var r = parseFloat(document.getElementById('ratePerSession').value) || 0;
+  document.getElementById('totalPackageValue').value = (s * r).toFixed(2);
+  updateInstalSummary();
+}
+
+// ══════════════════════════════════════
+// INSTALMENT SUMMARY
+// ══════════════════════════════════════
+function updateInstalSummary() {
+  var total = parseFloat(document.getElementById('totalPackageValue').value) || 0;
+  var first = parseFloat(document.getElementById('firstPayment').value) || 0;
+  var perI  = parseFloat(document.getElementById('instalmentAmount').value) || 0;
+  var nI    = parseInt(document.getElementById('totalInstalments').value) || 0;
+  var firstDate = document.getElementById('firstPaymentDate').value;
+  var sumEl = document.getElementById('instalSummary');
+  if (!total && !first) { sumEl.classList.remove('show'); return; }
+  sumEl.classList.add('show');
+  document.getElementById('is-total').textContent   = 'RM ' + total.toFixed(2);
+  document.getElementById('is-paid').textContent    = 'RM ' + first.toFixed(2);
+  document.getElementById('is-balance').textContent = 'RM ' + Math.max(0, total - first).toFixed(2);
+  document.getElementById('is-per').textContent     = perI ? 'RM ' + perI.toFixed(2) : '—';
+  if (firstDate && nI > 1) {
+    var nd = new Date(firstDate + 'T00:00:00'); nd.setMonth(nd.getMonth() + 1);
+    document.getElementById('is-next').textContent = nd.toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('dueWarn').classList.add('show');
+  } else {
+    document.getElementById('is-next').textContent = '—';
+    document.getElementById('dueWarn').classList.remove('show');
+  }
+}
+// ══════════════════════════════════════
+// FILE UPLOAD
+// ══════════════════════════════════════
+function onFileSelected(input, type) {
+  var file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { alert('Max 10MB.'); input.value = ''; return; }
+  var isRp = type === 'rp';
+  var icon = file.type === 'application/pdf' ? '📄' : '🖼️';
+  if (isRp) {
+    rpFileName = file.name; rpMimeType = file.type;
+    document.getElementById('rpUploadZone').classList.add('has-file');
+    document.getElementById('rpUploadText').textContent = 'Receipt uploaded ✓';
+    document.getElementById('rpUploadSub').textContent  = file.name;
+    document.getElementById('rpFileIcon').textContent   = icon;
+    document.getElementById('rpFileName').textContent   = file.name;
+    document.getElementById('rpFilePreview').classList.add('show');
+    var r = new FileReader(); r.onload = function(e){ rpFileData = e.target.result.split(',')[1]; }; r.readAsDataURL(file);
+  } else {
+    receiptFileName = file.name; receiptMimeType = file.type;
+    document.getElementById('uploadZone').classList.add('has-file');
+    document.getElementById('uploadText').textContent = 'Receipt uploaded ✓';
+    document.getElementById('uploadSub').textContent  = file.name;
+    document.getElementById('fileIcon').textContent   = icon;
+    document.getElementById('fileName').textContent   = file.name;
+    document.getElementById('filePreview').classList.add('show');
+    var r2 = new FileReader(); r2.onload = function(e){ receiptFileData = e.target.result.split(',')[1]; }; r2.readAsDataURL(file);
+  }
+}
+function removeFile(type) {
+  if (type === 'rp') {
+    rpFileData = null; rpFileName = ''; rpMimeType = '';
+    document.getElementById('rpReceiptFile').value = '';
+    document.getElementById('rpUploadZone').classList.remove('has-file');
+    document.getElementById('rpUploadText').textContent = 'Tap to upload receipt';
+    document.getElementById('rpUploadSub').textContent  = 'JPG, PNG or PDF — max 10MB';
+    document.getElementById('rpFilePreview').classList.remove('show');
+  } else {
+    receiptFileData = null; receiptFileName = ''; receiptMimeType = '';
+    document.getElementById('receiptFile').value = '';
+    document.getElementById('uploadZone').classList.remove('has-file');
+    document.getElementById('uploadText').textContent = 'Tap to upload receipt';
+    document.getElementById('uploadSub').textContent  = 'JPG, PNG or PDF — max 10MB';
+    document.getElementById('filePreview').classList.remove('show');
+  }
+}
+var uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', function(e){ e.preventDefault(); uz.classList.add('drag-over'); });
+uz.addEventListener('dragleave',function(){ uz.classList.remove('drag-over'); });
+uz.addEventListener('drop', function(e){
+  e.preventDefault(); uz.classList.remove('drag-over');
+  if (e.dataTransfer && e.dataTransfer.files.length) {
+    document.getElementById('receiptFile').files = e.dataTransfer.files;
+    onFileSelected(document.getElementById('receiptFile'),'receipt');
+  }
+});
+
+// ══════════════════════════════════════
+// WAIVER
+// ══════════════════════════════════════
+function updateWaiverName() {
+  var name = document.getElementById('fullName').value.trim();
+  var el = document.getElementById('waiverClientName');
+  if (name) { document.getElementById('waiverNameDisplay').textContent = name; el.classList.add('show'); }
+  else { el.classList.remove('show'); }
+}
+function toggleWaiverRead() {
+  waiverRead = !waiverRead;
+  document.getElementById('waiverCheck').classList.toggle('checked', waiverRead);
+}
+
+// ══════════════════════════════════════
+// SIGNATURE PAD
+// ══════════════════════════════════════
+var canvas = document.getElementById('sigPad');
+var ctx = canvas.getContext('2d');
+var isDrawing = false;
+var lastX = 0, lastY = 0;
+function resizeCanvas() {
+  var rect = canvas.parentElement.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width  = rect.width * dpr; canvas.height = 180 * dpr;
+  canvas.style.width = rect.width + 'px'; canvas.style.height = '180px';
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+}
+function getPos(e) {
+  var rect = canvas.getBoundingClientRect();
+  var src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+canvas.addEventListener('mousedown',  function(e){ var p=getPos(e); isDrawing=true; lastX=p.x; lastY=p.y; });
+canvas.addEventListener('mousemove',  function(e){
+  if (!isDrawing) return;
+  var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke();
+  lastX=p.x; lastY=p.y; hasSig=true; updateSigStatus();
+});
+canvas.addEventListener('mouseup',    function(){ isDrawing=false; });
+canvas.addEventListener('mouseleave', function(){ isDrawing=false; });
+canvas.addEventListener('touchstart', function(e){ e.preventDefault(); var p=getPos(e); isDrawing=true; lastX=p.x; lastY=p.y; },{passive:false});
+canvas.addEventListener('touchmove',  function(e){
+  e.preventDefault(); if (!isDrawing) return;
+  var p=getPos(e); ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke();
+  lastX=p.x; lastY=p.y; hasSig=true; updateSigStatus();
+},{passive:false});
+canvas.addEventListener('touchend', function(){ isDrawing=false; });
+function updateSigStatus() {
+  var st = document.getElementById('sigStatus');
+  if (hasSig) { st.className='sig-status signed'; st.textContent='✓ Signature captured'; document.getElementById('sigWrap').classList.add('signed'); }
+  else { st.className='sig-status'; document.getElementById('sigWrap').classList.remove('signed'); }
+}
+function clearSignature() {
+  ctx.clearRect(0, 0, canvas.width/window.devicePixelRatio, canvas.height/window.devicePixelRatio);
+  hasSig=false; updateSigStatus(); document.getElementById('sigStatus').className='sig-status';
+}
+function getSignatureBase64() { return canvas.toDataURL('image/png').split(',')[1]; }
+
+// ══════════════════════════════════════
+// CLIENT LOOKUP (shared)
+// ══════════════════════════════════════
+function onNameInput(val, mode) {
+  var boxId = mode === 'record' ? 'rpLookupResults' : 'lookupResults';
+  var box = document.getElementById(boxId);
+  if (!val || val.length < 2) { box.innerHTML = ''; return; }
+  clearTimeout(mode === 'record' ? rpLookupTimer : lookupTimer);
+  box.innerHTML = '<div class="lookup-card"><div class="lookup-searching">🔍 Searching clients...</div></div>';
+  var timer = setTimeout(function() {
+    if (lookupCache[val + mode]) { renderLookup(lookupCache[val + mode], mode); return; }
+    google.script.run
+      .withSuccessHandler(function(results) {
+        lookupCache[val + mode] = results;
+        renderLookup(results, mode);
+      })
+      .withFailureHandler(function() { box.innerHTML = ''; })
+      .lookupClient(val);
+  }, 400);
+  if (mode === 'record') rpLookupTimer = timer; else lookupTimer = timer;
+}
+
+function buildLookupCard(r, mode) {
+  var isOverdue = r.nextPayDate && r.nextPayDate.indexOf('Overdue') !== -1;
+  var paidColor = r.amountPaid >= r.totalValue ? 'green' : '';
+  var outColor  = r.outstanding > 0 ? 'red' : 'green';
+  var nextClass = isOverdue ? 'lookup-next lookup-overdue' : 'lookup-next';
+  var instalInfo = r.isInstalment
+    ? r.instalmentsPaid + ' of ' + r.totalInstalments + ' paid'
+    : 'Lump sum';
+
+  // Build payment history rows
+  var histHtml = '';
+  if (r.schedule && r.schedule.length) {
+    histHtml += '<div class="lookup-history"><div class="history-title">Payment Schedule</div>';
+    r.schedule.forEach(function(s) {
+      var rowClass = s.paid ? 'history-row' : s.overdue ? 'history-row overdue' : 'history-row pending';
+      var statusIcon = s.paid ? '✅' : s.overdue ? '⚠️' : s.dueTomorrow ? '🔔' : '⏳';
+      histHtml += '<div class="' + rowClass + '">' +
+        '<span class="h-num">#' + s.instalment + '</span>' +
+        '<span class="h-date">' + s.dueDate + '</span>' +
+        '<span class="h-amt">RM ' + s.amount.toFixed(2) + '</span>' +
+        '<span style="font-size:12px;margin-left:6px;">' + statusIcon + '</span>' +
+        '</div>';
+    });
+    histHtml += '</div>';
+  }
+
+  var fillBtnHtml = mode === 'new'
+    ? '<div class="lookup-action"><button class="lookup-fill-btn" onclick="autoFillClient()">↙ Auto-fill this client\'s details</button></div>'
+    : '';
+
+  return '<div class="lookup-card">' +
+    '<div class="lookup-header">' +
+      '<div><div class="lookup-name">' + r.fullName + '</div>' +
+      '<div class="lookup-trainer">Trainer: ' + r.trainerName + ' · ' + r.packageType + '</div></div>' +
+    '</div>' +
+    '<div class="lookup-body">' +
+      '<div class="lookup-stat"><div class="ls-val ' + paidColor + '">RM ' + r.amountPaid.toFixed(2) + '</div><div class="ls-lbl">Total Paid · ' + instalInfo + '</div></div>' +
+      '<div class="lookup-stat"><div class="ls-val ' + outColor + '">RM ' + r.outstanding.toFixed(2) + '</div><div class="ls-lbl">Outstanding</div></div>' +
+      '<div class="lookup-stat"><div class="ls-val">' + r.sessionsRemaining + '</div><div class="ls-lbl">Sessions Remaining</div></div>' +
+      '<div class="lookup-stat"><div class="ls-val amber">' + r.instalmentsPaid + '/' + r.totalInstalments + '</div><div class="ls-lbl">Instalments Paid</div></div>' +
+      '<div class="' + nextClass + '"><div class="ls-val">' + (r.nextPayDate || '—') + '</div><div class="ls-lbl">Next payment due</div></div>' +
+    '</div>' +
+    histHtml +
+    fillBtnHtml +
+  '</div>';
+}
+
+// Store last looked-up client for auto-fill
+var lastLookedUpClient = null;
+function renderLookup(results, mode) {
+  var boxId = mode === 'record' ? 'rpLookupResults' : 'lookupResults';
+  var box = document.getElementById(boxId);
+  if (!results || results.length === 0) {
+    box.innerHTML = mode === 'new'
+      ? '<div class="lookup-new-badge">✨ New client — no existing record</div>'
+      : '<div class="lookup-card"><div class="lookup-searching">No client found.</div></div>';
+    lastLookedUpClient = null;
+    return;
+  }
+  if (results.length === 1) {
+    lastLookedUpClient = results[0];
+    box.innerHTML = buildLookupCard(results[0], mode);
+    if (mode === 'record') showRecordPayPanel(results[0]);
+  } else {
+    var html = '<div class="lookup-card"><div class="lookup-multiple">';
+    results.forEach(function(r, idx) {
+      html += '<div class="lookup-suggestion" onclick="selectLookupResult(' + idx + ',\'' + mode + '\')">' +
+        '<div><div class="sug-name">' + r.fullName + '</div>' +
+        '<div class="sug-sub">Trainer: ' + r.trainerName + ' · ' + r.packageType + '</div></div>' +
+        '<div style="font-size:12px;color:#888;">RM ' + r.outstanding.toFixed(0) + ' outstanding</div></div>';
+    });
+    html += '</div></div>';
+    box.innerHTML = html;
+    box._results = results;
+    box._allResults = results;
+  }
+}
+
+function selectLookupResult(idx, mode) {
+  var boxId = mode === 'record' ? 'rpLookupResults' : 'lookupResults';
+  var box = document.getElementById(boxId);
+  var results = box._allResults || box._results;
+  if (!results || !results[idx]) return;
+  lastLookedUpClient = results[idx];
+  box.innerHTML = buildLookupCard(results[idx], mode);
+  if (mode === 'record') showRecordPayPanel(results[idx]);
+}
+
+// ══════════════════════════════════════
+// AUTO-FILL (new client form)
+// ══════════════════════════════════════
+function autoFillClient() {
+  var r = lastLookedUpClient;
+  if (!r) return;
+  function fill(id, val) {
+    var el = document.getElementById(id);
+    if (el) { el.value = val || ''; el.classList.add('prefilled'); }
+  }
+  fill('fullName',         r.fullName);
+  fill('phone',            r.phone);
+  fill('email',            r.email);
+  fill('ic',               r.ic);
+  fill('emergencyContact', r.emergencyContact);
+  fill('emergencyPhone',   r.emergencyPhone);
+  updateWaiverName();
+  document.getElementById('lookupResults').innerHTML =
+    '<div class="lookup-new-badge" style="background:#E6F1FB;color:#0C447C;">✓ Details auto-filled from existing record</div>';
+}
+
+// ══════════════════════════════════════
+// RECORD PAYMENT PANEL
+// ══════════════════════════════════════
+function showRecordPayPanel(r) {
+  selectedClientRow = r;
+  document.getElementById('rpClientSummary').classList.remove('hidden');
+  document.getElementById('rpNewPayCard').classList.remove('hidden');
+  document.getElementById('rpReceiptCard').classList.remove('hidden');
+  document.getElementById('rpSubmitWrap').classList.remove('hidden');
+
+  document.getElementById('rpSelectedName').textContent = r.fullName;
+  document.getElementById('rpSelectedMeta').textContent = 'Trainer: ' + r.trainerName + ' · ' + r.packageType;
+  document.getElementById('rpAmtPaid').textContent      = 'RM ' + r.amountPaid.toFixed(2);
+  document.getElementById('rpOutstanding').textContent  = 'RM ' + r.outstanding.toFixed(2);
+  document.getElementById('rpInstalPaid').textContent   = r.instalmentsPaid + ' / ' + r.totalInstalments;
+  document.getElementById('rpNextDue').textContent      = r.nextPayDate || '—';
+
+  // Payment history
+  var histEl = document.getElementById('rpHistory');
+  if (r.schedule && r.schedule.length) {
+    var html = '<div class="history-title">Payment Schedule</div>';
+    r.schedule.forEach(function(s) {
+      var rowClass = s.paid ? 'history-row' : s.overdue ? 'history-row overdue' : 'history-row pending';
+      var icon = s.paid ? '✅' : s.overdue ? '⚠️' : s.dueTomorrow ? '🔔' : '⏳';
+      html += '<div class="' + rowClass + '">' +
+        '<span class="h-num">#' + s.instalment + '</span>' +
+        '<span class="h-date">' + s.dueDate + '</span>' +
+        '<span class="h-amt">RM ' + s.amount.toFixed(2) + '</span>' +
+        '<span style="font-size:12px;margin-left:6px;">' + icon + '</span></div>';
+    });
+    histEl.innerHTML = html;
+  }
+
+  // Pre-fill expected instalment amount
+  if (r.instalmentAmt) document.getElementById('rpPayAmt').value = r.instalmentAmt.toFixed(2);
+  document.getElementById('rpPayDate').value = new Date().toISOString().split('T')[0];
+}
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+function getVal(id)  { return document.getElementById(id).value.trim(); }
+function getPill(g)  { var a=document.querySelector('[data-group="'+g+'"].active'); return a?a.dataset.val:''; }
+function getChips(g) { return Array.from(document.querySelectorAll('#'+g+' .chip-btn.active')).map(function(b){return b.dataset.val;}).join(', '); }
+function setProgress(msg) { document.getElementById('progressMsg').textContent=msg; document.getElementById('progressOverlay').classList.add('show'); }
+function hideProgress() { document.getElementById('progressOverlay').classList.remove('show'); }
+
+// ══════════════════════════════════════
+// SUBMIT — NEW CLIENT
+// ══════════════════════════════════════
+function submitForm() {
+  var isInstalment = getPill('instalmentPlan') === 'Yes';
+  var required = ['fullName','phone','email','ic','emergencyContact','emergencyPhone','startDate','sessions','ratePerSession'];
+  if (isInstalment) required.push('firstPayment','firstPaymentDate','instalmentAmount');
+  else required.push('amountPaidFull');
+  var missing      = required.filter(function(id){ return !getVal(id); });
+  var trainerOk    = !!getVal('trainerNameHidden');
+  var missingPills = ['fitnessLevel','leadType','packageType','paymentMode'].filter(function(g){ return !getPill(g); });
+  var goalsOk      = document.querySelectorAll('#grp-fitnessGoals .chip-btn.active').length > 0;
+  var sourceOk     = document.querySelectorAll('#grp-source .chip-btn.active').length > 0;
+  var errors = [];
+  if (missing.length || missingPills.length || !trainerOk || !goalsOk) errors.push('Complete all required fields.');
+  if (!sourceOk)       errors.push('Select how the client found us.');
+  if (!receiptFileData) errors.push('Upload the payment receipt.');
+  if (!waiverRead)     errors.push('Confirm you have read the liability waiver.');
+  if (!hasSig)         errors.push('Client signature is required.');
+  if (errors.length) {
+    var b = document.getElementById('error-banner');
+    b.innerHTML = errors.map(function(e){ return '• '+e; }).join('<br>');
+    b.classList.add('show');
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  document.getElementById('error-banner').classList.remove('show');
+  document.getElementById('submitBtn').disabled = true;
+  setProgress('Saving client data…');
+
+  var payMode  = getPill('paymentMode') === 'Others' ? 'Others: '+getVal('paymentOthers') : getPill('paymentMode');
+  var firstAmt = isInstalment ? parseFloat(getVal('firstPayment'))||0 : parseFloat(getVal('amountPaidFull'))||0;
+  var medOther = document.querySelector('#grp-medical .chip-btn[data-other-trigger].active') ? getVal('medicalOther') : '';
+  var sourceVal = getChips('grp-source');
+  if (sourceVal === 'Other') { var so = getVal('sourceOther'); if (so) sourceVal = 'Other: ' + so; }
+
+  var data = {
+    fullName: getVal('fullName'), phone: getVal('phone'), email: getVal('email'), ic: getVal('ic'),
+    emergencyContact: getVal('emergencyContact'), emergencyPhone: getVal('emergencyPhone'),
+    trainerName: getVal('trainerNameHidden'), startDate: getVal('startDate'),
+    fitnessLevel: getPill('fitnessLevel'), fitnessGoals: getChips('grp-fitnessGoals'),
+    medicalConditions: getChips('grp-medical') + (medOther ? ' ('+medOther+')' : ''),
+    packageType: getPill('packageType'), sessions: getVal('sessions'),
+    ratePerSession: getVal('ratePerSession'), totalPackageValue: getVal('totalPackageValue'),
+    leadType: getPill('leadType'), paymentMode: payMode,
+    instalmentPlan: getPill('instalmentPlan'), totalInstalments: getVal('totalInstalments'),
+    instalmentAmount: getVal('instalmentAmount'), firstPaymentDate: getVal('firstPaymentDate'),
+    amountPaid: firstAmt.toFixed(2), additionalPayments: '[]',
+    discoverySource: sourceVal, notes: getVal('notes'),
+    receiptBase64: receiptFileData, receiptFileName: receiptFileName, receiptMimeType: receiptMimeType,
+    signatureBase64: getSignatureBase64(),
+    waiverDate: new Date().toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'})
+  };
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      hideProgress();
+      document.getElementById('newClientForm').classList.add('hidden');
+      document.getElementById('successMsg').textContent = data.fullName + ' has been registered under ' + data.trainerName + '.';
+      if (result && result.folderUrl)
+        document.getElementById('driveMsg').innerHTML = '📁 Saved to <a href="'+result.folderUrl+'" target="_blank" style="color:#185FA5;">Google Drive</a>';
+      document.getElementById('successCard').classList.add('show');
+    })
+    .withFailureHandler(function(err) {
+      hideProgress();
+      document.getElementById('submitBtn').disabled = false;
+      alert('Error: ' + (err.message || 'Please try again.'));
+    })
+    .onboardClient(data);
+}
+
+// ══════════════════════════════════════
+// SUBMIT — RECORD PAYMENT
+// ══════════════════════════════════════
+function submitRecordPayment() {
+  if (!selectedClientRow) { alert('Please select a client first.'); return; }
+  var amt     = parseFloat(getVal('rpPayAmt')) || 0;
+  var payDate = getVal('rpPayDate');
+  var method  = getPill('rpPayMethod');
+  if (amt <= 0)   { alert('Please enter a payment amount.'); return; }
+  if (!payDate)   { alert('Please enter a payment date.'); return; }
+  if (!method)    { alert('Please select a payment method.'); return; }
+  if (!rpFileData){ alert('Please upload a payment receipt.'); return; }
+
+  document.getElementById('rpSubmitBtn').disabled = true;
+  setProgress('Recording payment…');
+
+  var data = {
+    clientName:    selectedClientRow.fullName,
+    sheetRowIndex: selectedClientRow.rowIndex,
+    paymentAmount: amt,
+    paymentDate:   payDate,
+    paymentMethod: method,
+    notes:         getVal('rpNotes'),
+    receiptBase64: rpFileData,
+    receiptFileName: rpFileName,
+    receiptMimeType: rpMimeType
+  };
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      hideProgress();
+      document.getElementById('recordPayForm').classList.add('hidden');
+      document.getElementById('rpSuccessMsg').textContent = 'Payment of RM ' + amt.toFixed(2) + ' recorded for ' + selectedClientRow.fullName + '.';
+      if (result && result.folderUrl)
+        document.getElementById('rpDriveMsg').innerHTML = '📁 Receipt saved to <a href="'+result.folderUrl+'" target="_blank" style="color:#185FA5;">Google Drive</a>';
+      document.getElementById('rpSuccessCard').classList.add('show');
+    })
+    .withFailureHandler(function(err) {
+      hideProgress();
+      document.getElementById('rpSubmitBtn').disabled = false;
+      alert('Error: ' + (err.message || 'Please try again.'));
+    })
+    .recordPayment(data);
+}
+
+// ══════════════════════════════════════
+// RESET
+// ══════════════════════════════════════
+function resetForm(mode) {
+  if (mode === 'new') {
+    document.getElementById('successCard').classList.remove('show');
+    document.getElementById('newClientForm').classList.remove('hidden');
+    document.getElementById('submitBtn').disabled = false;
+    document.querySelectorAll('#newClientForm input:not([type=hidden]), #newClientForm select, #newClientForm textarea').forEach(function(el){ el.value=''; el.classList.remove('prefilled'); });
+    document.querySelectorAll('.toggle-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.chip-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelector('#grp-medical .chip-btn[data-none]').classList.add('active');
+    document.querySelector('[data-group="instalmentPlan"][data-val="No"]').classList.add('active');
+    document.getElementById('instalBlock').classList.remove('show');
+    document.getElementById('fullPayBlock').style.display = 'block';
+    document.getElementById('instalSummary').classList.remove('show');
+    document.getElementById('othersReveal').classList.remove('show');
+    document.getElementById('medOtherBlock').classList.remove('show');
+    document.getElementById('sourceOtherBlock').classList.remove('show');
+    document.getElementById('dueWarn').classList.remove('show');
+    document.querySelectorAll('.preset-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.add-trainer-panel,.delete-trainer-panel').forEach(function(p){ p.classList.remove('show'); });
+    removeFile('receipt');
+    waiverRead = false; hasSig = false;
+    document.getElementById('waiverCheck').classList.remove('checked');
+    clearSignature();
+    document.getElementById('waiverClientName').classList.remove('show');
+    document.getElementById('driveMsg').textContent = '';
+    document.getElementById('lookupResults').innerHTML = '';
+    lookupCache = {};
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').value       = today;
+    document.getElementById('firstPaymentDate').value = today;
+    document.getElementById('waiverDate').textContent = new Date().toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'});
+  } else {
+    document.getElementById('rpSuccessCard').classList.remove('show');
+    document.getElementById('recordPayForm').classList.remove('hidden');
+    document.getElementById('rpSubmitBtn').disabled = false;
+    document.getElementById('rpClientSearch').value = '';
+    document.getElementById('rpLookupResults').innerHTML = '';
+    document.getElementById('rpClientSummary').classList.add('hidden');
+    document.getElementById('rpNewPayCard').classList.add('hidden');
+    document.getElementById('rpReceiptCard').classList.add('hidden');
+    document.getElementById('rpSubmitWrap').classList.add('hidden');
+    document.getElementById('rpPayAmt').value = '';
+    document.getElementById('rpNotes').value = '';
+    document.getElementById('rpHistory').innerHTML = '';
+    document.querySelectorAll('[data-group="rpPayMethod"]').forEach(function(b){ b.classList.remove('active'); });
+    removeFile('rp');
+    selectedClientRow = null;
+    lookupCache = {};
+    document.getElementById('rpPayDate').value = new Date().toISOString().split('T')[0];
+  }
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+renderTrainers();
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+var today = new Date().toISOString().split('T')[0];
+document.getElementById('startDate').value        = today;
+document.getElementById('firstPaymentDate').value = today;
+document.getElementById('rpPayDate').value        = today;
+document.getElementById('waiverDate').textContent = new Date().toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'});
+</script>
+</div>
+
+
+<script>
+/* Local preview: Apps Script bridge is absent — stub google.script.run */
+(function () {
+  if (window.google && window.google.script && window.google.script.run && window.google.script.run.withSuccessHandler) return;
+  var run = {
+    _ok: function () {},
+    _bad: function () {},
+    withSuccessHandler: function (fn) { this._ok = fn; return this; },
+    withFailureHandler: function (fn) { this._bad = fn; return this; },
+    lookupClient: function () {
+      var self = this;
+      setTimeout(function () { self._ok([]); }, 120);
+    },
+    onboardClient: function () {
+      var self = this;
+      setTimeout(function () { self._ok({ folderUrl: 'https://example.com' }); }, 350);
+    },
+    recordPayment: function () {
+      var self = this;
+      setTimeout(function () { self._ok({}); }, 350);
+    }
+  };
+  window.google = { script: { run: run } };
+})();
+function calixSwitchTab(which) {
+  var s = document.getElementById('session-panel');
+  var o = document.getElementById('onboard-panel');
+  var ts = document.getElementById('tabSession');
+  var to = document.getElementById('tabOnboard');
+  var on = which === 'onboard';
+  s.classList.toggle('active', !on);
+  o.classList.toggle('active', on);
+  ts.classList.toggle('active', !on);
+  to.classList.toggle('active', on);
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  if (on && typeof resizeCanvas === 'function') {
+    requestAnimationFrame(function () { resizeCanvas(); });
+  }
+}
+document.addEventListener('DOMContentLoaded', function () {
+  calixSwitchTab('session');
+});
+</script>
+
+</body>
+</html>
