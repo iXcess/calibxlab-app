@@ -50,7 +50,7 @@ Logo and favicons live in [`assets/`](assets/). Regenerate transparent PNGs from
 python3 scripts/generate_brand_assets.py
 ```
 
-Includes `favicon.ico`, PNG icons (16–512px), `calixlab-mark.png` (icon mark), and `calixlab-logo-header.png` (wordmark, transparent background). White backing is stripped automatically; dark headers use a CSS invert filter for contrast.
+Includes `favicon.ico`, PNG icons (16–512px), maskable PWA icons (`icon-192-maskable.png`, `icon-512-maskable.png`), `calixlab-mark.png` (icon mark), and `calixlab-logo-header.png` (wordmark, transparent background). White backing is stripped automatically; icon padding is tuned per size so bookmarks/home-screen icons stay centered and unclipped.
 
 ## Invoices
 

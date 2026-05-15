@@ -57,12 +57,36 @@ def save_png(im: Image.Image, path: Path) -> None:
     im.save(path, format="PNG", optimize=True)
 
 
+def square_with_padding(im: Image.Image, size: int, pad_ratio: float) -> Image.Image:
+    """Center logo mark in a square with consistent optical breathing room."""
+    base = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    max_inner = max(1, int(round(size * (1.0 - 2.0 * pad_ratio))))
+    src = im.copy()
+    w, h = src.size
+    scale = max_inner / float(max(w, h))
+    nw = max(1, int(round(w * scale)))
+    nh = max(1, int(round(h * scale)))
+    src = src.resize((nw, nh), Image.Resampling.LANCZOS)
+    x = (size - src.width) // 2
+    y = (size - src.height) // 2
+    base.paste(src, (x, y), src)
+    return base
+
+
 def save_icons(mark: Image.Image) -> None:
-    for s in (16, 32, 48, 64, 128, 180, 192, 512):
-        save_png(mark.resize((s, s), Image.Resampling.LANCZOS), ASSETS / f"icon-{s}.png")
-    save_png(mark.resize((16, 16), Image.Resampling.LANCZOS), ASSETS / "favicon-16.png")
-    save_png(mark.resize((32, 32), Image.Resampling.LANCZOS), ASSETS / "favicon-32.png")
-    mark.resize((32, 32), Image.Resampling.LANCZOS).save(
+    # Slightly tighter fit for tiny favicon sizes to preserve detail.
+    for s in (16, 32):
+        save_png(square_with_padding(mark, s, 0.10), ASSETS / f"favicon-{s}.png")
+
+    # Balanced fit for regular app/bookmark icons.
+    for s in (48, 64, 128, 180, 192, 512):
+        save_png(square_with_padding(mark, s, 0.14), ASSETS / f"icon-{s}.png")
+
+    # Maskable variants need extra safe zone so shape crops don't clip the mark.
+    for s in (192, 512):
+        save_png(square_with_padding(mark, s, 0.24), ASSETS / f"icon-{s}-maskable.png")
+
+    square_with_padding(mark, 64, 0.12).save(
         ASSETS / "favicon.ico",
         format="ICO",
         sizes=[(16, 16), (32, 32), (48, 48)],
