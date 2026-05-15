@@ -1925,7 +1925,9 @@ function doSubmit(){
   const cv=document.getElementById('signCv');
   const dataUrl=cv.toDataURL('image/jpeg',0.85);
   const compress=window.calixlabCompressSignatureDataUrl;
-  const sigPromise=compress?compress(dataUrl):Promise.resolve((dataUrl.split(',')[1]||''));
+  const sigPromise=compress
+    ? compress(dataUrl).then(function(out){ return (out && out.base64) ? out.base64 : ''; })
+    : Promise.resolve((dataUrl.split(',')[1]||''));
 
   if(!window.google||!google.script||!google.script.run){
     toast('Backend not configured — set CALIXLAB_GAS_EXEC_URL');

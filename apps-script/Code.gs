@@ -785,9 +785,18 @@ function saveDriveBlob_(blob, meta) {
   return { fileName: file.getName(), url: file.getUrl(), fileId: file.getId() };
 }
 
+
+function normalizeBase64Input_(base64) {
+  if (base64 && typeof base64 === 'object') {
+    if (base64.base64) return String(base64.base64);
+    if (base64.data) return String(base64.data);
+  }
+  return String(base64 || '');
+}
+
 function saveBase64File_(base64, mimeType, meta) {
   if (!RECEIPTS_FOLDER_ID) return '';
-  var raw = String(base64 || '');
+  var raw = normalizeBase64Input_(base64);
   var comma = raw.indexOf(',');
   if (comma >= 0) raw = raw.slice(comma + 1);
   var blob = Utilities.newBlob(

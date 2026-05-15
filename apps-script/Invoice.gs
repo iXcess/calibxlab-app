@@ -40,9 +40,24 @@ function escapeHtml_(s) {
     .replace(/"/g, '&quot;');
 }
 
-/** Public HTTPS logo — works in HtmlService PDF (data URIs are stripped). */
-function getInvoiceLogoSrc_() {
-  return 'https://ixcess.github.io/calibxlab-app/assets/calixlab-logo-header.png';
+/** Embedded logo for HtmlService PDF (use <?!= ?> in template; <?= escapes data URIs). */
+function getInvoiceLogoDataUri_() {
+  var key = 'INVOICE_LOGO_DATA_URI_V2';
+  var cached = PropertiesService.getScriptProperties().getProperty(key);
+  if (cached) return cached;
+  var url = 'https://ixcess.github.io/calibxlab-app/assets/calixlab-logo-header.png';
+  try {
+    var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    if (resp.getResponseCode() === 200) {
+      var bytes = resp.getBlob().getBytes();
+      if (bytes && bytes.length > 100) {
+        var uri = 'data:image/png;base64,' + Utilities.base64Encode(bytes);
+        PropertiesService.getScriptProperties().setProperty(key, uri);
+        return uri;
+      }
+    }
+  } catch (e) { /* use text-only header */ }
+  return '';
 }
 
 function getInvoiceSheet_() {
@@ -167,7 +182,7 @@ function buildInvoiceModelFromRow_(row, rowIndex, options) {
     companyLegal: COMPANY_LEGAL_NAME,
     companyDisplay: COMPANY_DISPLAY_NAME,
     companyAddress: COMPANY_ADDRESS_LINES,
-    logoSrc: getInvoiceLogoSrc_(),
+    logoDataUri: getInvoiceLogoDataUri_(),
     meta: { rowIndex: rowIndex, type: type, totalValue: total, paid: paid, balance: balance }
   };
 }
@@ -200,7 +215,7 @@ function renderInvoiceHtml_(model) {
   t.companyLegal = model.companyLegal;
   t.companyDisplay = model.companyDisplay;
   t.companyAddress = model.companyAddress;
-  t.logoSrc = model.logoSrc;
+  t.logoDataUri = model.logoDataUri || '';
   t.billName = escapeHtml_(model.billName);
   t.billContact = escapeHtml_(model.billContact);
   t.invoiceNumber = escapeHtml_(model.invoiceNumber);
