@@ -24,30 +24,34 @@ body.app-body {
   color: #1a1a1a;
   font-size: 16px;
 }
-#session-panel, #onboard-panel { display: none; }
-#session-panel.active, #onboard-panel.active { display: block; }
-.calix-appbar {
+
+.hub-view { display: none; }
+.hub-view.active { display: block; }
+.hub-mode-switcher {
   position: sticky; top: 0; z-index: 2000;
-  display: flex; align-items: center; justify-content: center;
-  padding: 10px 12px 0;
-  background: #f0efe9;
-}
-.calix-appbar-inner {
-  display: flex; width: 100%; max-width: 560px; margin: 0 auto;
+  display: flex; max-width: 560px; width: calc(100% - 32px); margin: 12px auto;
   background: white; border-radius: 12px; padding: 4px;
   border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
-.calix-tab {
-  flex: 1; border: none; border-radius: 9px; padding: 11px 8px;
-  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
-  background: transparent; color: #888;
-  transition: color .15s, background .15s;
+.hub-mode-switcher .mode-btn {
+  flex: 1; min-width: 0; padding: 10px 4px; border: none; border-radius: 9px;
+  font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
+  background: transparent; color: #888; transition: all 0.2s;
 }
-.calix-tab.active {
+@media (min-width: 420px) {
+  .hub-mode-switcher .mode-btn { font-size: 13px; padding: 10px 6px; }
+}
+.hub-mode-switcher .mode-btn.active {
   background: #185FA5; color: white;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
-.calix-tab:focus-visible { outline: 2px solid #185FA5; outline-offset: 2px; }
+.hub-mode-switcher .mode-btn:focus-visible { outline: 2px solid #185FA5; outline-offset: 2px; }
+#hub-header.hidden { display: none; }
+.hub-admin-placeholder {
+  max-width: 560px; margin: 40px auto; padding: 48px 24px; text-align: center;
+  background: white; border-radius: 16px; border: 1px dashed #ddd; color: #999;
+  font-size: 15px;
+}
 
 .header { text-align: center; margin-bottom: 24px; }
 .logo {
@@ -407,7 +411,7 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 }
 </style>
 <style>
-@scope (#onboard-panel) {
+@scope (#view-onboarding, #view-payment, #view-trainer, #view-admin) {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :scope {
@@ -810,14 +814,484 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 </head>
 <body class="app-body">
 
-<header class="calix-appbar" role="navigation" aria-label="Main">
-  <div class="calix-appbar-inner">
-    <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
-    <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
-  </div>
-</header>
 
-<div id="session-panel">
+<nav class="hub-mode-switcher" role="navigation" aria-label="Main">
+  <button type="button" class="mode-btn active" id="hubNavOnboarding" onclick="calixSwitchHubView('onboarding')">Onboarding</button>
+  <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')">Payment Record</button>
+  <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')">Session Log</button>
+  <button type="button" class="mode-btn" id="hubNavTrainer" onclick="calixSwitchHubView('trainer')">Trainer</button>
+  <button type="button" class="mode-btn" id="hubNavAdmin" onclick="calixSwitchHubView('admin')">Admin</button>
+</nav>
+<div id="hub-header" class="header">
+  <div class="logo">
+    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="280" height="56"/>
+  </div>
+  <h1 id="hubTitle">Client Onboarding</h1>
+  <p id="hubSub">New client registration</p>
+</div>
+
+
+<h1>Client Onboarding</h1>
+  <p>Client Onboarding &amp; Payment</p>
+</div>
+
+<div id="error-banner" class="error-banner"></div>
+
+<!-- PROGRESS OVERLAY -->
+<div class="progress-overlay" id="progressOverlay">
+  <div class="progress-box">
+    <img src="assets/calixlab-mark.png" alt="" width="48" height="48" style="margin:0 auto 14px;display:block;object-fit:contain"/>
+    <div class="progress-spinner" style="display:none"></div>
+    <p id="progressMsg">Saving…</p>
+    <small>Please do not close this page</small>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     NEW CLIENT FORM
+══════════════════════════════════════════ -->
+
+<div id="view-onboarding" class="hub-view active">
+<div id="newClientForm">
+
+  <!-- 1. PERSONAL INFO -->
+  <div class="card">
+    <div class="section-title">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+      Personal Information
+    </div>
+    <div class="field">
+      <label>Full Name <span class="req">*</span></label>
+      <input type="text" id="fullName" placeholder="As per IC / Passport" autocomplete="off" oninput="updateWaiverName(); onNameInput(this.value, 'new')"/>
+      <div id="lookupResults"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Phone Number <span class="req">*</span></label>
+        <input type="tel" id="phone" placeholder="01X-XXXXXXX"/>
+      </div>
+      <div class="field">
+        <label>Email <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="email@example.com"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>IC / Passport Number <span class="req">*</span></label>
+      <input type="text" id="ic" placeholder="XXXXXX-XX-XXXX" inputmode="numeric"/>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Emergency Contact Name <span class="req">*</span></label>
+        <input type="text" id="emergencyContact" placeholder="Full name"/>
+      </div>
+      <div class="field">
+        <label>Emergency Contact Phone <span class="req">*</span></label>
+        <input type="tel" id="emergencyPhone" placeholder="01X-XXXXXXX"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. HEALTH SCREENING -->
+  <div class="card">
+    <div class="section-title green">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      Health Screening
+    </div>
+    <div class="field">
+      <label>Fitness Level <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-fitnessLevel">
+        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Beginner">Beginner</button>
+        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Intermediate">Intermediate</button>
+        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Advanced">Advanced</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Fitness Goals <span class="req">*</span> <span class="sublabel">Select all that apply</span></label>
+      <div class="chip-group" id="grp-fitnessGoals">
+        <button type="button" class="chip-btn goal-c" data-val="Weight Loss">Weight Loss</button>
+        <button type="button" class="chip-btn goal-c" data-val="Muscle Gain">Muscle Gain</button>
+        <button type="button" class="chip-btn goal-c" data-val="Endurance">Endurance</button>
+        <button type="button" class="chip-btn goal-c" data-val="Flexibility">Flexibility</button>
+        <button type="button" class="chip-btn goal-c" data-val="Calisthenics Skill">Calisthenics Skill</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Medical Conditions <span class="sublabel">Select all that apply</span></label>
+      <div class="chip-group" id="grp-medical">
+        <button type="button" class="chip-btn none-c active" data-val="None" data-none="1">None</button>
+        <button type="button" class="chip-btn" data-val="Hypertension">Hypertension</button>
+        <button type="button" class="chip-btn" data-val="Diabetes">Diabetes</button>
+        <button type="button" class="chip-btn" data-val="Asthma">Asthma</button>
+        <button type="button" class="chip-btn" data-val="Heart Condition">Heart Condition</button>
+        <button type="button" class="chip-btn" data-val="Joint / Knee Pain">Joint / Knee Pain</button>
+        <button type="button" class="chip-btn" data-val="Back Pain">Back Pain</button>
+        <button type="button" class="chip-btn" data-val="Shoulder Injury">Shoulder Injury</button>
+        <button type="button" class="chip-btn" data-val="Post-Surgery">Post-Surgery</button>
+        <button type="button" class="chip-btn" data-val="Pregnant / Postnatal">Pregnant / Postnatal</button>
+        <button type="button" class="chip-btn" data-val="Other" data-other-trigger="medOtherBlock">Other</button>
+      </div>
+      <div class="hblock" id="medOtherBlock" style="margin-top:10px;">
+        <input type="text" id="medicalOther" placeholder="Describe your condition…"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. TRAINER & PACKAGE -->
+  <div class="card">
+    <div class="section-title amber">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+      Trainer &amp; Package
+    </div>
+    <div class="field">
+      <label>Assigned Trainer <span class="req">*</span></label>
+      <div class="trainer-select-row">
+        <select id="trainerSelect" onchange="syncTrainerFromSelect()">
+          <option value="">— Select Trainer —</option>
+        </select>
+        <button type="button" class="icon-btn add-btn" onclick="togglePanel('addTrainerPanel','deleteTrainerPanel')">+</button>
+        <button type="button" class="icon-btn del-btn" onclick="togglePanel('deleteTrainerPanel','addTrainerPanel')">🗑</button>
+      </div>
+      <div class="add-trainer-panel" id="addTrainerPanel">
+        <label style="margin-bottom:8px;font-size:13px;color:#185FA5;">New trainer name</label>
+        <input type="text" id="newTrainerName" placeholder="Enter full name…"/>
+        <div class="panel-btns">
+          <button type="button" class="btn-confirm" onclick="confirmAddTrainer()">Add Trainer</button>
+          <button type="button" class="btn-cancel" onclick="closePanel('addTrainerPanel')">Cancel</button>
+        </div>
+      </div>
+      <div class="delete-trainer-panel" id="deleteTrainerPanel">
+        <p>Tap Remove to delete a trainer from the list.</p>
+        <div class="trainer-delete-list" id="trainerDeleteList"></div>
+        <button type="button" class="close-panel-btn" onclick="closePanel('deleteTrainerPanel')">Close</button>
+      </div>
+      <input type="hidden" id="trainerNameHidden"/>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Start Date <span class="req">*</span></label>
+        <input type="date" id="startDate"/>
+      </div>
+      <div class="field">
+        <label>Lead Type <span class="req">*</span></label>
+        <div class="toggle-group" id="grp-leadType" style="flex-direction:column;">
+          <button type="button" class="toggle-btn" data-group="leadType" data-val="Calixlab Lead (60%)" style="text-align:left;">Calixlab's Lead (60%)</button>
+          <button type="button" class="toggle-btn" data-group="leadType" data-val="Trainer Lead (70%)" style="text-align:left;">Trainer's Lead (70%)</button>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Package Type <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-packageType">
+        <button type="button" class="toggle-btn" data-group="packageType" data-val="1-1 Personal Training">1-1 Personal Training</button>
+        <button type="button" class="toggle-btn" data-group="packageType" data-val="1-2 Personal Training">1-2 Personal Training</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Number of Sessions <span class="req">*</span></label>
+      <div class="preset-row">
+        <button type="button" class="preset-btn" data-sessions="6">6</button>
+        <button type="button" class="preset-btn" data-sessions="12">12</button>
+        <button type="button" class="preset-btn" data-sessions="24">24</button>
+        <button type="button" class="preset-btn" data-sessions="custom">Custom</button>
+      </div>
+      <input type="number" id="sessions" placeholder="Or enter manually" min="1" inputmode="numeric"/>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Rate / Session (RM) <span class="req">*</span></label>
+        <input type="number" id="ratePerSession" placeholder="e.g. 150" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="field">
+        <label>Total Package Value (RM)</label>
+        <input type="number" id="totalPackageValue" placeholder="Auto-calculated" readonly/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. HOW DID YOU FIND US -->
+  <div class="card">
+    <div class="section-title purple">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      How Did You Find Us?
+    </div>
+    <div class="field">
+      <label>Discovery Source <span class="req">*</span></label>
+      <div class="chip-group" id="grp-source">
+        <button type="button" class="chip-btn source-c" data-val="Instagram">📸 Instagram</button>
+        <button type="button" class="chip-btn source-c" data-val="Facebook">👤 Facebook</button>
+        <button type="button" class="chip-btn source-c" data-val="Family">👨‍👩‍👧 Family</button>
+        <button type="button" class="chip-btn source-c" data-val="Friends">🤝 Friends</button>
+        <button type="button" class="chip-btn source-c" data-val="Walk In">🚶 Walk In</button>
+        <button type="button" class="chip-btn source-c" data-val="Other" data-other-trigger="sourceOtherBlock">💬 Other</button>
+      </div>
+      <div class="hblock" id="sourceOtherBlock" style="margin-top:10px;">
+        <input type="text" id="sourceOther" placeholder="Please specify…"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. PAYMENT DETAILS -->
+  <div class="card">
+    <div class="section-title purple">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      Payment Details
+    </div>
+    <div class="field">
+      <label>Payment Method <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-paymentMode">
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Touch N Go">Touch N Go</button>
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Card">Card</button>
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Online Bank Transfer">Online Bank Transfer</button>
+        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Others" data-reveal="othersReveal">Others</button>
+      </div>
+      <div class="others-reveal" id="othersReveal">
+        <input type="text" id="paymentOthers" placeholder="Please specify…" style="margin-top:10px;"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Instalment Plan <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-instalmentPlan">
+        <button type="button" class="toggle-btn active" data-group="instalmentPlan" data-val="No">No — Full Payment</button>
+        <button type="button" class="toggle-btn" data-group="instalmentPlan" data-val="Yes">Yes — Instalment</button>
+      </div>
+    </div>
+    <div id="fullPayBlock">
+      <div class="field">
+        <label>Amount Paid (RM) <span class="req">*</span></label>
+        <input type="number" id="amountPaidFull" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+    </div>
+    <div class="hblock" id="instalBlock">
+      <div class="row2">
+        <div class="field">
+          <label>Total Instalments <span class="req">*</span></label>
+          <select id="totalInstalments" onchange="updateInstalSummary()">
+            <option value="">— Select —</option>
+            <option value="2">2 payments</option>
+            <option value="3">3 payments</option>
+            <option value="4">4 payments</option>
+            <option value="6">6 payments</option>
+            <option value="12">12 payments</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Per Instalment (RM) <span class="req">*</span></label>
+          <input type="number" id="instalmentAmount" placeholder="e.g. 300" min="0" step="0.01" inputmode="decimal" oninput="updateInstalSummary()"/>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>1st Payment Amount (RM) <span class="req">*</span></label>
+          <input type="number" id="firstPayment" placeholder="0.00" min="0" step="0.01" inputmode="decimal" oninput="updateInstalSummary()"/>
+        </div>
+        <div class="field">
+          <label>1st Payment Date <span class="req">*</span></label>
+          <input type="date" id="firstPaymentDate" onchange="updateInstalSummary()"/>
+        </div>
+      </div>
+      <div class="instal-summary" id="instalSummary">
+        <div class="is-row"><span class="is-lbl">Total Package Value</span><span class="is-val" id="is-total">—</span></div>
+        <div class="is-row"><span class="is-lbl">1st Payment</span><span class="is-val" id="is-paid">—</span></div>
+        <div class="is-row"><span class="is-lbl">Balance Remaining</span><span class="is-val" id="is-balance">—</span></div>
+        <div class="is-row"><span class="is-lbl">Per Instalment</span><span class="is-val" id="is-per">—</span></div>
+        <div class="is-row"><span class="is-lbl">Next Payment Due</span><span class="is-val" id="is-next">—</span></div>
+      </div>
+      <div class="due-warn" id="dueWarn">⚠ Trainer reminder: Collect the next instalment on the due date above. Use the 💳 Record Payment tab to record future payments.</div>
+    </div>
+    <div class="field" style="margin-top:8px;">
+      <label>Notes</label>
+      <textarea id="notes" placeholder="Any additional notes…"></textarea>
+    </div>
+  </div>
+
+  <!-- 6. PAYMENT RECEIPT -->
+  <div class="card">
+    <div class="section-title coral">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+      Payment Receipt <span class="req" style="font-size:14px;margin-left:2px;">*</span>
+    </div>
+    <p style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.5;">Upload a photo or PDF of the payment receipt.</p>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="receiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'receipt')"/>
+      <div class="upload-icon">📎</div>
+      <div class="upload-text" id="uploadText">Tap to upload receipt</div>
+      <div class="upload-sub" id="uploadSub">JPG, PNG or PDF — max 10MB (photos auto-compressed)</div>
+    </div>
+    <div class="file-preview" id="filePreview">
+      <span style="font-size:20px;" id="fileIcon">📄</span>
+      <span class="file-preview-name" id="fileName">—</span>
+      <button type="button" class="remove-file-btn" onclick="removeFile('receipt')">✕</button>
+    </div>
+  </div>
+
+  <!-- 7. LIABILITY WAIVER -->
+  <div class="card">
+    <div class="section-title teal">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9 11l3 3L22 4"/></svg>
+      Liability Waiver &amp; Consent
+    </div>
+    <div id="waiverClientName" class="waiver-client-name">
+      Waiver for: <span id="waiverNameDisplay">—</span>
+    </div>
+    <div class="waiver-scroll">
+      <h3>CALIXLAB EMPIRE — PERSONAL TRAINING<br>LIABILITY WAIVER &amp; INFORMED CONSENT</h3>
+      <h4>1. Description of Activities</h4>
+      <p>I understand that personal training at Calixlab Empire involves physical exercise activities including but not limited to resistance training, cardiovascular exercise, flexibility training, bodyweight exercises, and calisthenics-based movements.</p>
+      <h4>2. Assumption of Risk</h4>
+      <p>I acknowledge that physical exercise carries inherent risks including muscle soreness, strains, joint discomfort, cardiovascular stress, and aggravation of pre-existing medical conditions. I voluntarily assume full responsibility for any risks, injuries, or damages.</p>
+      <h4>3. Medical Clearance</h4>
+      <p>I confirm that I am in adequate physical condition to participate. I have disclosed all known medical conditions on this form. If my health status changes, I agree to notify my trainer immediately before the next session.</p>
+      <h4>4. Release of Liability</h4>
+      <p>I hereby <strong>release, waive, and discharge Calixlab Empire, its owners, trainers, employees, and agents</strong> from any and all claims, demands, losses, damages, costs, and liabilities arising from my participation in training sessions.</p>
+      <h4>5. Package &amp; Payment Policy</h4>
+      <ul>
+        <li>All purchased sessions are non-refundable once commenced.</li>
+        <li>A minimum of 24 hours' notice is required to reschedule or cancel a session.</li>
+        <li>Instalment payments are due on the agreed dates. Failure to pay may result in suspension of sessions.</li>
+      </ul>
+      <h4>6. Acknowledgement</h4>
+      <p><strong>By signing below, I confirm that I have read, understood, and agree to all terms above.</strong></p>
+    </div>
+    <div class="waiver-read-confirm" onclick="toggleWaiverRead()">
+      <div class="waiver-check" id="waiverCheck"></div>
+      <div class="waiver-read-text">
+        <strong>I have read and understood the full liability waiver above.</strong><br>
+        I agree to all terms and conditions stated in this document.
+      </div>
+    </div>
+    <span class="sig-label">Client Signature <span class="req">*</span></span>
+    <div class="sig-wrap" id="sigWrap">
+      <canvas id="sigPad"></canvas>
+      <div class="sig-toolbar">
+        <span class="sig-hint">Draw your signature above</span>
+        <button type="button" class="sig-clear-btn" onclick="clearSignature()">Clear</button>
+      </div>
+    </div>
+    <div id="sigStatus" class="sig-status"></div>
+    <div style="font-size:12px;color:#888;margin-top:10px;">
+      Date: <span id="waiverDate" style="font-weight:600;color:#444;"></span>
+    </div>
+  </div>
+
+  <div class="submit-wrap" style="margin-bottom:20px;">
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitForm()">Register Client</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     RECORD PAYMENT FORM
+══════════════════════════════════════════ -->
+<div class="success-card" id="successCard">
+  <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
+</div>
+
+<div id="view-payment" class="hub-view">
+<div id="recordPayForm" class="hidden">
+  <div class="card">
+    <div class="section-title red">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+      Record Instalment Payment
+    </div>
+    <div class="field">
+      <label>Search Client Name <span class="req">*</span></label>
+      <input type="text" id="rpClientSearch" placeholder="Start typing client name…" autocomplete="off"
+        oninput="onNameInput(this.value,'record')"/>
+      <div id="rpLookupResults"></div>
+    </div>
+
+    <!-- Client summary (shown after selection) -->
+    <div id="rpClientSummary" class="hidden">
+      <div style="background:#E6F1FB;border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:700;color:#0C447C;" id="rpSelectedName">—</div>
+        <div style="font-size:12px;color:#555;margin-top:3px;" id="rpSelectedMeta">—</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="rp-summary">
+        <div class="rp-stat">
+          <div class="rp-val green" id="rpAmtPaid">—</div>
+          <div class="rp-lbl">Total Paid</div>
+        </div>
+        <div class="rp-stat">
+          <div class="rp-val red" id="rpOutstanding">—</div>
+          <div class="rp-lbl">Outstanding</div>
+        </div>
+        <div class="rp-stat">
+          <div class="rp-val" id="rpInstalPaid">—</div>
+          <div class="rp-lbl">Instalments Paid</div>
+        </div>
+        <div class="rp-stat">
+          <div class="rp-val amber" id="rpNextDue">—</div>
+          <div class="rp-lbl">Next Payment Due</div>
+        </div>
+      </div>
+
+      <!-- Payment history -->
+      <div class="lookup-history" id="rpHistory" style="margin-bottom:14px;"></div>
+    </div>
+  </div>
+
+  <!-- New payment details (shown after client selected) -->
+  <div class="card hidden" id="rpNewPayCard">
+    <div class="section-title amber">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      New Payment Details
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Payment Amount (RM) <span class="req">*</span></label>
+        <input type="number" id="rpPayAmt" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
+      </div>
+      <div class="field">
+        <label>Payment Date <span class="req">*</span></label>
+        <input type="date" id="rpPayDate"/>
+      </div>
+    </div>
+    <div class="field">
+      <label>Payment Method <span class="req">*</span></label>
+      <div class="toggle-group" id="grp-rpPayMethod">
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Touch N Go">Touch N Go</button>
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Card">Card</button>
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Online Bank Transfer">Online Bank Transfer</button>
+        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Others">Others</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes <span class="sublabel">(optional)</span></label>
+      <textarea id="rpNotes" placeholder="e.g. Instalment #2 paid via TNG…" style="min-height:60px;"></textarea>
+    </div>
+  </div>
+
+  <!-- Receipt upload for record payment -->
+  <div class="card hidden" id="rpReceiptCard">
+    <div class="section-title coral">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
+      Upload Payment Receipt <span class="req" style="font-size:14px;margin-left:2px;">*</span>
+    </div>
+    <div class="upload-zone" id="rpUploadZone">
+      <input type="file" id="rpReceiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'rp')"/>
+      <div class="upload-icon">📎</div>
+      <div class="upload-text" id="rpUploadText">Tap to upload receipt</div>
+      <div class="upload-sub" id="rpUploadSub">JPG, PNG or PDF — max 10MB (photos auto-compressed)</div>
+    </div>
+    <div class="file-preview" id="rpFilePreview">
+      <span style="font-size:20px;" id="rpFileIcon">📄</span>
+      <span class="file-preview-name" id="rpFileName">—</span>
+      <button type="button" class="remove-file-btn" onclick="removeFile('rp')">✕</button>
+    </div>
+  </div>
+
+  <div class="submit-wrap hidden" id="rpSubmitWrap" style="margin-bottom:20px;">
+    <button type="button" class="submit-btn green-btn" id="rpSubmitBtn" onclick="submitRecordPayment()">
+      Save Payment Record
+    </button>
+  </div>
+</div>
+<div class="success-card" id="rpSuccessCard">
+  <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
+</div>
+
+<div id="session-panel" class="hub-view">
 <div class="header">
   <div class="logo">
     <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="280" height="56"/>
@@ -1326,482 +1800,57 @@ function doCopy(){
 </script>
 </div>
 
-<div id="onboard-panel" class="active">
-<div class="header">
-  <div class="logo">
-    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="280" height="56"/>
+<div id="view-trainer" class="hub-view">
+
+<div class="card">
+  <div class="section-title">
+    <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+    Personal Information
   </div>
-  <h1>Client Onboarding</h1>
-  <p>Client Onboarding &amp; Payment</p>
+  <div class="field">
+    <label>Full Name <span class="req">*</span></label>
+    <input type="text" id="toFullName" placeholder="As per IC / Passport" autocomplete="name"/>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>Phone Number <span class="req">*</span></label>
+      <input type="tel" id="toPhone" placeholder="01X-XXXXXXX"/>
+    </div>
+    <div class="field">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" id="toEmail" placeholder="email@example.com"/>
+    </div>
+  </div>
+  <div class="field">
+    <label>IC / Passport Number <span class="req">*</span></label>
+    <input type="text" id="toIc" placeholder="XXXXXX-XX-XXXX" inputmode="numeric"/>
+  </div>
+  <div class="row2">
+    <div class="field">
+      <label>Emergency Contact Name <span class="req">*</span></label>
+      <input type="text" id="toEmergencyContact" placeholder="Full name"/>
+    </div>
+    <div class="field">
+      <label>Emergency Contact Phone <span class="req">*</span></label>
+      <input type="tel" id="toEmergencyPhone" placeholder="01X-XXXXXXX"/>
+    </div>
+  </div>
+  <div class="ferr" id="toFormErr" style="display:none;margin-top:8px;"></div>
 </div>
-
-<!-- MODE SWITCHER -->
-<div class="mode-switcher">
-  <button class="mode-btn active" id="modeNew" onclick="switchMode('new')">➕ New Client</button>
-  <button class="mode-btn" id="modeRecord" onclick="switchMode('record')">💳 Record Payment</button>
+<div class="submit-wrap">
+  <button type="button" class="submit-btn" id="toSubmitBtn" onclick="submitTrainerOnboarding()">Register Trainer</button>
 </div>
-
-<div id="error-banner" class="error-banner"></div>
-
-<!-- PROGRESS OVERLAY -->
-<div class="progress-overlay" id="progressOverlay">
-  <div class="progress-box">
-    <img src="assets/calixlab-mark.png" alt="" width="48" height="48" style="margin:0 auto 14px;display:block;object-fit:contain"/>
-    <div class="progress-spinner" style="display:none"></div>
-    <p id="progressMsg">Saving…</p>
-    <small>Please do not close this page</small>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════
-     NEW CLIENT FORM
-══════════════════════════════════════════ -->
-<div id="newClientForm">
-
-  <!-- 1. PERSONAL INFO -->
-  <div class="card">
-    <div class="section-title">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
-      Personal Information
-    </div>
-    <div class="field">
-      <label>Full Name <span class="req">*</span></label>
-      <input type="text" id="fullName" placeholder="As per IC / Passport" autocomplete="off" oninput="updateWaiverName(); onNameInput(this.value, 'new')"/>
-      <div id="lookupResults"></div>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label>Phone Number <span class="req">*</span></label>
-        <input type="tel" id="phone" placeholder="01X-XXXXXXX"/>
-      </div>
-      <div class="field">
-        <label>Email <span class="req">*</span></label>
-        <input type="email" id="email" placeholder="email@example.com"/>
-      </div>
-    </div>
-    <div class="field">
-      <label>IC / Passport Number <span class="req">*</span></label>
-      <input type="text" id="ic" placeholder="XXXXXX-XX-XXXX" inputmode="numeric"/>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label>Emergency Contact Name <span class="req">*</span></label>
-        <input type="text" id="emergencyContact" placeholder="Full name"/>
-      </div>
-      <div class="field">
-        <label>Emergency Contact Phone <span class="req">*</span></label>
-        <input type="tel" id="emergencyPhone" placeholder="01X-XXXXXXX"/>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. HEALTH SCREENING -->
-  <div class="card">
-    <div class="section-title green">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-      Health Screening
-    </div>
-    <div class="field">
-      <label>Fitness Level <span class="req">*</span></label>
-      <div class="toggle-group" id="grp-fitnessLevel">
-        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Beginner">Beginner</button>
-        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Intermediate">Intermediate</button>
-        <button type="button" class="toggle-btn" data-group="fitnessLevel" data-val="Advanced">Advanced</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>Fitness Goals <span class="req">*</span> <span class="sublabel">Select all that apply</span></label>
-      <div class="chip-group" id="grp-fitnessGoals">
-        <button type="button" class="chip-btn goal-c" data-val="Weight Loss">Weight Loss</button>
-        <button type="button" class="chip-btn goal-c" data-val="Muscle Gain">Muscle Gain</button>
-        <button type="button" class="chip-btn goal-c" data-val="Endurance">Endurance</button>
-        <button type="button" class="chip-btn goal-c" data-val="Flexibility">Flexibility</button>
-        <button type="button" class="chip-btn goal-c" data-val="Calisthenics Skill">Calisthenics Skill</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>Medical Conditions <span class="sublabel">Select all that apply</span></label>
-      <div class="chip-group" id="grp-medical">
-        <button type="button" class="chip-btn none-c active" data-val="None" data-none="1">None</button>
-        <button type="button" class="chip-btn" data-val="Hypertension">Hypertension</button>
-        <button type="button" class="chip-btn" data-val="Diabetes">Diabetes</button>
-        <button type="button" class="chip-btn" data-val="Asthma">Asthma</button>
-        <button type="button" class="chip-btn" data-val="Heart Condition">Heart Condition</button>
-        <button type="button" class="chip-btn" data-val="Joint / Knee Pain">Joint / Knee Pain</button>
-        <button type="button" class="chip-btn" data-val="Back Pain">Back Pain</button>
-        <button type="button" class="chip-btn" data-val="Shoulder Injury">Shoulder Injury</button>
-        <button type="button" class="chip-btn" data-val="Post-Surgery">Post-Surgery</button>
-        <button type="button" class="chip-btn" data-val="Pregnant / Postnatal">Pregnant / Postnatal</button>
-        <button type="button" class="chip-btn" data-val="Other" data-other-trigger="medOtherBlock">Other</button>
-      </div>
-      <div class="hblock" id="medOtherBlock" style="margin-top:10px;">
-        <input type="text" id="medicalOther" placeholder="Describe your condition…"/>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. TRAINER & PACKAGE -->
-  <div class="card">
-    <div class="section-title amber">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
-      Trainer &amp; Package
-    </div>
-    <div class="field">
-      <label>Assigned Trainer <span class="req">*</span></label>
-      <div class="trainer-select-row">
-        <select id="trainerSelect" onchange="syncTrainerFromSelect()">
-          <option value="">— Select Trainer —</option>
-        </select>
-        <button type="button" class="icon-btn add-btn" onclick="togglePanel('addTrainerPanel','deleteTrainerPanel')">+</button>
-        <button type="button" class="icon-btn del-btn" onclick="togglePanel('deleteTrainerPanel','addTrainerPanel')">🗑</button>
-      </div>
-      <div class="add-trainer-panel" id="addTrainerPanel">
-        <label style="margin-bottom:8px;font-size:13px;color:#185FA5;">New trainer name</label>
-        <input type="text" id="newTrainerName" placeholder="Enter full name…"/>
-        <div class="panel-btns">
-          <button type="button" class="btn-confirm" onclick="confirmAddTrainer()">Add Trainer</button>
-          <button type="button" class="btn-cancel" onclick="closePanel('addTrainerPanel')">Cancel</button>
-        </div>
-      </div>
-      <div class="delete-trainer-panel" id="deleteTrainerPanel">
-        <p>Tap Remove to delete a trainer from the list.</p>
-        <div class="trainer-delete-list" id="trainerDeleteList"></div>
-        <button type="button" class="close-panel-btn" onclick="closePanel('deleteTrainerPanel')">Close</button>
-      </div>
-      <input type="hidden" id="trainerNameHidden"/>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label>Start Date <span class="req">*</span></label>
-        <input type="date" id="startDate"/>
-      </div>
-      <div class="field">
-        <label>Lead Type <span class="req">*</span></label>
-        <div class="toggle-group" id="grp-leadType" style="flex-direction:column;">
-          <button type="button" class="toggle-btn" data-group="leadType" data-val="Calixlab Lead (60%)" style="text-align:left;">Calixlab's Lead (60%)</button>
-          <button type="button" class="toggle-btn" data-group="leadType" data-val="Trainer Lead (70%)" style="text-align:left;">Trainer's Lead (70%)</button>
-        </div>
-      </div>
-    </div>
-    <div class="field">
-      <label>Package Type <span class="req">*</span></label>
-      <div class="toggle-group" id="grp-packageType">
-        <button type="button" class="toggle-btn" data-group="packageType" data-val="1-1 Personal Training">1-1 Personal Training</button>
-        <button type="button" class="toggle-btn" data-group="packageType" data-val="1-2 Personal Training">1-2 Personal Training</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>Number of Sessions <span class="req">*</span></label>
-      <div class="preset-row">
-        <button type="button" class="preset-btn" data-sessions="6">6</button>
-        <button type="button" class="preset-btn" data-sessions="12">12</button>
-        <button type="button" class="preset-btn" data-sessions="24">24</button>
-        <button type="button" class="preset-btn" data-sessions="custom">Custom</button>
-      </div>
-      <input type="number" id="sessions" placeholder="Or enter manually" min="1" inputmode="numeric"/>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label>Rate / Session (RM) <span class="req">*</span></label>
-        <input type="number" id="ratePerSession" placeholder="e.g. 150" min="0" step="0.01" inputmode="decimal"/>
-      </div>
-      <div class="field">
-        <label>Total Package Value (RM)</label>
-        <input type="number" id="totalPackageValue" placeholder="Auto-calculated" readonly/>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. HOW DID YOU FIND US -->
-  <div class="card">
-    <div class="section-title purple">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-      How Did You Find Us?
-    </div>
-    <div class="field">
-      <label>Discovery Source <span class="req">*</span></label>
-      <div class="chip-group" id="grp-source">
-        <button type="button" class="chip-btn source-c" data-val="Instagram">📸 Instagram</button>
-        <button type="button" class="chip-btn source-c" data-val="Facebook">👤 Facebook</button>
-        <button type="button" class="chip-btn source-c" data-val="Family">👨‍👩‍👧 Family</button>
-        <button type="button" class="chip-btn source-c" data-val="Friends">🤝 Friends</button>
-        <button type="button" class="chip-btn source-c" data-val="Walk In">🚶 Walk In</button>
-        <button type="button" class="chip-btn source-c" data-val="Other" data-other-trigger="sourceOtherBlock">💬 Other</button>
-      </div>
-      <div class="hblock" id="sourceOtherBlock" style="margin-top:10px;">
-        <input type="text" id="sourceOther" placeholder="Please specify…"/>
-      </div>
-    </div>
-  </div>
-
-  <!-- 5. PAYMENT DETAILS -->
-  <div class="card">
-    <div class="section-title purple">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
-      Payment Details
-    </div>
-    <div class="field">
-      <label>Payment Method <span class="req">*</span></label>
-      <div class="toggle-group" id="grp-paymentMode">
-        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Touch N Go">Touch N Go</button>
-        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Card">Card</button>
-        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Online Bank Transfer">Online Bank Transfer</button>
-        <button type="button" class="toggle-btn purple" data-group="paymentMode" data-val="Others" data-reveal="othersReveal">Others</button>
-      </div>
-      <div class="others-reveal" id="othersReveal">
-        <input type="text" id="paymentOthers" placeholder="Please specify…" style="margin-top:10px;"/>
-      </div>
-    </div>
-    <div class="field">
-      <label>Instalment Plan <span class="req">*</span></label>
-      <div class="toggle-group" id="grp-instalmentPlan">
-        <button type="button" class="toggle-btn active" data-group="instalmentPlan" data-val="No">No — Full Payment</button>
-        <button type="button" class="toggle-btn" data-group="instalmentPlan" data-val="Yes">Yes — Instalment</button>
-      </div>
-    </div>
-    <div id="fullPayBlock">
-      <div class="field">
-        <label>Amount Paid (RM) <span class="req">*</span></label>
-        <input type="number" id="amountPaidFull" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
-      </div>
-    </div>
-    <div class="hblock" id="instalBlock">
-      <div class="row2">
-        <div class="field">
-          <label>Total Instalments <span class="req">*</span></label>
-          <select id="totalInstalments" onchange="updateInstalSummary()">
-            <option value="">— Select —</option>
-            <option value="2">2 payments</option>
-            <option value="3">3 payments</option>
-            <option value="4">4 payments</option>
-            <option value="6">6 payments</option>
-            <option value="12">12 payments</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Per Instalment (RM) <span class="req">*</span></label>
-          <input type="number" id="instalmentAmount" placeholder="e.g. 300" min="0" step="0.01" inputmode="decimal" oninput="updateInstalSummary()"/>
-        </div>
-      </div>
-      <div class="row2">
-        <div class="field">
-          <label>1st Payment Amount (RM) <span class="req">*</span></label>
-          <input type="number" id="firstPayment" placeholder="0.00" min="0" step="0.01" inputmode="decimal" oninput="updateInstalSummary()"/>
-        </div>
-        <div class="field">
-          <label>1st Payment Date <span class="req">*</span></label>
-          <input type="date" id="firstPaymentDate" onchange="updateInstalSummary()"/>
-        </div>
-      </div>
-      <div class="instal-summary" id="instalSummary">
-        <div class="is-row"><span class="is-lbl">Total Package Value</span><span class="is-val" id="is-total">—</span></div>
-        <div class="is-row"><span class="is-lbl">1st Payment</span><span class="is-val" id="is-paid">—</span></div>
-        <div class="is-row"><span class="is-lbl">Balance Remaining</span><span class="is-val" id="is-balance">—</span></div>
-        <div class="is-row"><span class="is-lbl">Per Instalment</span><span class="is-val" id="is-per">—</span></div>
-        <div class="is-row"><span class="is-lbl">Next Payment Due</span><span class="is-val" id="is-next">—</span></div>
-      </div>
-      <div class="due-warn" id="dueWarn">⚠ Trainer reminder: Collect the next instalment on the due date above. Use the 💳 Record Payment tab to record future payments.</div>
-    </div>
-    <div class="field" style="margin-top:8px;">
-      <label>Notes</label>
-      <textarea id="notes" placeholder="Any additional notes…"></textarea>
-    </div>
-  </div>
-
-  <!-- 6. PAYMENT RECEIPT -->
-  <div class="card">
-    <div class="section-title coral">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
-      Payment Receipt <span class="req" style="font-size:14px;margin-left:2px;">*</span>
-    </div>
-    <p style="font-size:13px;color:#666;margin-bottom:14px;line-height:1.5;">Upload a photo or PDF of the payment receipt.</p>
-    <div class="upload-zone" id="uploadZone">
-      <input type="file" id="receiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'receipt')"/>
-      <div class="upload-icon">📎</div>
-      <div class="upload-text" id="uploadText">Tap to upload receipt</div>
-      <div class="upload-sub" id="uploadSub">JPG, PNG or PDF — max 10MB (photos auto-compressed)</div>
-    </div>
-    <div class="file-preview" id="filePreview">
-      <span style="font-size:20px;" id="fileIcon">📄</span>
-      <span class="file-preview-name" id="fileName">—</span>
-      <button type="button" class="remove-file-btn" onclick="removeFile('receipt')">✕</button>
-    </div>
-  </div>
-
-  <!-- 7. LIABILITY WAIVER -->
-  <div class="card">
-    <div class="section-title teal">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M9 11l3 3L22 4"/></svg>
-      Liability Waiver &amp; Consent
-    </div>
-    <div id="waiverClientName" class="waiver-client-name">
-      Waiver for: <span id="waiverNameDisplay">—</span>
-    </div>
-    <div class="waiver-scroll">
-      <h3>CALIXLAB EMPIRE — PERSONAL TRAINING<br>LIABILITY WAIVER &amp; INFORMED CONSENT</h3>
-      <h4>1. Description of Activities</h4>
-      <p>I understand that personal training at Calixlab Empire involves physical exercise activities including but not limited to resistance training, cardiovascular exercise, flexibility training, bodyweight exercises, and calisthenics-based movements.</p>
-      <h4>2. Assumption of Risk</h4>
-      <p>I acknowledge that physical exercise carries inherent risks including muscle soreness, strains, joint discomfort, cardiovascular stress, and aggravation of pre-existing medical conditions. I voluntarily assume full responsibility for any risks, injuries, or damages.</p>
-      <h4>3. Medical Clearance</h4>
-      <p>I confirm that I am in adequate physical condition to participate. I have disclosed all known medical conditions on this form. If my health status changes, I agree to notify my trainer immediately before the next session.</p>
-      <h4>4. Release of Liability</h4>
-      <p>I hereby <strong>release, waive, and discharge Calixlab Empire, its owners, trainers, employees, and agents</strong> from any and all claims, demands, losses, damages, costs, and liabilities arising from my participation in training sessions.</p>
-      <h4>5. Package &amp; Payment Policy</h4>
-      <ul>
-        <li>All purchased sessions are non-refundable once commenced.</li>
-        <li>A minimum of 24 hours' notice is required to reschedule or cancel a session.</li>
-        <li>Instalment payments are due on the agreed dates. Failure to pay may result in suspension of sessions.</li>
-      </ul>
-      <h4>6. Acknowledgement</h4>
-      <p><strong>By signing below, I confirm that I have read, understood, and agree to all terms above.</strong></p>
-    </div>
-    <div class="waiver-read-confirm" onclick="toggleWaiverRead()">
-      <div class="waiver-check" id="waiverCheck"></div>
-      <div class="waiver-read-text">
-        <strong>I have read and understood the full liability waiver above.</strong><br>
-        I agree to all terms and conditions stated in this document.
-      </div>
-    </div>
-    <span class="sig-label">Client Signature <span class="req">*</span></span>
-    <div class="sig-wrap" id="sigWrap">
-      <canvas id="sigPad"></canvas>
-      <div class="sig-toolbar">
-        <span class="sig-hint">Draw your signature above</span>
-        <button type="button" class="sig-clear-btn" onclick="clearSignature()">Clear</button>
-      </div>
-    </div>
-    <div id="sigStatus" class="sig-status"></div>
-    <div style="font-size:12px;color:#888;margin-top:10px;">
-      Date: <span id="waiverDate" style="font-weight:600;color:#444;"></span>
-    </div>
-  </div>
-
-  <div class="submit-wrap" style="margin-bottom:20px;">
-    <button type="button" class="submit-btn" id="submitBtn" onclick="submitForm()">Register Client</button>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════
-     RECORD PAYMENT FORM
-══════════════════════════════════════════ -->
-<div id="recordPayForm" class="hidden">
-  <div class="card">
-    <div class="section-title red">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
-      Record Instalment Payment
-    </div>
-    <div class="field">
-      <label>Search Client Name <span class="req">*</span></label>
-      <input type="text" id="rpClientSearch" placeholder="Start typing client name…" autocomplete="off"
-        oninput="onNameInput(this.value,'record')"/>
-      <div id="rpLookupResults"></div>
-    </div>
-
-    <!-- Client summary (shown after selection) -->
-    <div id="rpClientSummary" class="hidden">
-      <div style="background:#E6F1FB;border-radius:10px;padding:14px;margin-bottom:14px;">
-        <div style="font-size:15px;font-weight:700;color:#0C447C;" id="rpSelectedName">—</div>
-        <div style="font-size:12px;color:#555;margin-top:3px;" id="rpSelectedMeta">—</div>
-      </div>
-
-      <!-- Stats -->
-      <div class="rp-summary">
-        <div class="rp-stat">
-          <div class="rp-val green" id="rpAmtPaid">—</div>
-          <div class="rp-lbl">Total Paid</div>
-        </div>
-        <div class="rp-stat">
-          <div class="rp-val red" id="rpOutstanding">—</div>
-          <div class="rp-lbl">Outstanding</div>
-        </div>
-        <div class="rp-stat">
-          <div class="rp-val" id="rpInstalPaid">—</div>
-          <div class="rp-lbl">Instalments Paid</div>
-        </div>
-        <div class="rp-stat">
-          <div class="rp-val amber" id="rpNextDue">—</div>
-          <div class="rp-lbl">Next Payment Due</div>
-        </div>
-      </div>
-
-      <!-- Payment history -->
-      <div class="lookup-history" id="rpHistory" style="margin-bottom:14px;"></div>
-    </div>
-  </div>
-
-  <!-- New payment details (shown after client selected) -->
-  <div class="card hidden" id="rpNewPayCard">
-    <div class="section-title amber">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-      New Payment Details
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label>Payment Amount (RM) <span class="req">*</span></label>
-        <input type="number" id="rpPayAmt" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
-      </div>
-      <div class="field">
-        <label>Payment Date <span class="req">*</span></label>
-        <input type="date" id="rpPayDate"/>
-      </div>
-    </div>
-    <div class="field">
-      <label>Payment Method <span class="req">*</span></label>
-      <div class="toggle-group" id="grp-rpPayMethod">
-        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Touch N Go">Touch N Go</button>
-        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Card">Card</button>
-        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Online Bank Transfer">Online Bank Transfer</button>
-        <button type="button" class="toggle-btn purple" data-group="rpPayMethod" data-val="Others">Others</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>Notes <span class="sublabel">(optional)</span></label>
-      <textarea id="rpNotes" placeholder="e.g. Instalment #2 paid via TNG…" style="min-height:60px;"></textarea>
-    </div>
-  </div>
-
-  <!-- Receipt upload for record payment -->
-  <div class="card hidden" id="rpReceiptCard">
-    <div class="section-title coral">
-      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>
-      Upload Payment Receipt <span class="req" style="font-size:14px;margin-left:2px;">*</span>
-    </div>
-    <div class="upload-zone" id="rpUploadZone">
-      <input type="file" id="rpReceiptFile" accept="image/*,.pdf" onchange="onFileSelected(this,'rp')"/>
-      <div class="upload-icon">📎</div>
-      <div class="upload-text" id="rpUploadText">Tap to upload receipt</div>
-      <div class="upload-sub" id="rpUploadSub">JPG, PNG or PDF — max 10MB (photos auto-compressed)</div>
-    </div>
-    <div class="file-preview" id="rpFilePreview">
-      <span style="font-size:20px;" id="rpFileIcon">📄</span>
-      <span class="file-preview-name" id="rpFileName">—</span>
-      <button type="button" class="remove-file-btn" onclick="removeFile('rp')">✕</button>
-    </div>
-  </div>
-
-  <div class="submit-wrap hidden" id="rpSubmitWrap" style="margin-bottom:20px;">
-    <button type="button" class="submit-btn green-btn" id="rpSubmitBtn" onclick="submitRecordPayment()">
-      Save Payment Record
-    </button>
-  </div>
-</div>
-
-<!-- SUCCESS SCREENS -->
-<div class="success-card" id="successCard">
+<div class="success-card" id="toSuccessCard">
   <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
-  <h2>Registration Complete!</h2>
-  <p id="successMsg">Client has been successfully onboarded.</p>
-  <p id="driveMsg" style="margin-top:8px;font-size:13px;color:#3B6D11;"></p>
-  <button type="button" class="reset-btn" onclick="resetForm('new')">Register Another Client</button>
+  <h2>Trainer Registered!</h2>
+  <p id="toSuccessMsg">Trainer has been added to the sheet.</p>
+  <button type="button" class="reset-btn" onclick="resetTrainerOnboarding()">Register Another Trainer</button>
 </div>
 
-<div class="success-card" id="rpSuccessCard">
-  <div class="brand-success-wrap"><img src="assets/calixlab-mark.png" alt="Cali Lab"/></div>
-  <h2>Payment Recorded!</h2>
-  <p id="rpSuccessMsg">Payment has been saved successfully.</p>
-  <div id="rpInvoiceMsg" class="success-invoice-msg"></div>
-  <button type="button" class="reset-btn" onclick="resetForm('record')">Record Another Payment</button>
+</div>
+
+<div id="view-admin" class="hub-view">
+  <div class="hub-admin-placeholder">Admin tools coming soon.</div>
 </div>
 
 <script>
@@ -1825,17 +1874,7 @@ var waiverRead = false, hasSig = false;
 // ══════════════════════════════════════
 // MODE SWITCHER
 // ══════════════════════════════════════
-function switchMode(mode) {
-  currentMode = mode;
-  document.getElementById('modeNew').classList.toggle('active', mode === 'new');
-  document.getElementById('modeRecord').classList.toggle('active', mode === 'record');
-  document.getElementById('newClientForm').classList.toggle('hidden', mode === 'record');
-  document.getElementById('recordPayForm').classList.toggle('hidden', mode === 'new');
-  document.getElementById('successCard').classList.remove('show');
-  document.getElementById('rpSuccessCard').classList.remove('show');
-  document.getElementById('error-banner').classList.remove('show');
-  window.scrollTo({top: 0, behavior: 'smooth'});
-}
+
 
 // ══════════════════════════════════════
 // TRAINERS (Google Sheet tab "Trainer")
@@ -2565,7 +2604,117 @@ document.getElementById('firstPaymentDate').value = today;
 document.getElementById('rpPayDate').value        = today;
 document.getElementById('waiverDate').textContent = new Date().toLocaleDateString('en-MY',{day:'numeric',month:'long',year:'numeric'});
 </script>
-</div>
+
+<script>
+var calixHubView = 'onboarding';
+var HUB_HEADERS = {
+  onboarding: ['Client Onboarding', 'New client registration'],
+  payment: ['Payment Record', 'Record instalment payment'],
+  trainer: ['Trainer Onboarding', 'Register a new trainer'],
+  admin: ['Admin', '']
+};
+function calixSwitchHubView(view) {
+  calixHubView = view;
+  ['onboarding','payment','session','trainer','admin'].forEach(function (v) {
+    var el = document.getElementById(v === 'session' ? 'session-panel' : 'view-' + v);
+    if (el) el.classList.toggle('active', v === view);
+  });
+  var navMap = { onboarding: 'hubNavOnboarding', payment: 'hubNavPayment', session: 'hubNavSession', trainer: 'hubNavTrainer', admin: 'hubNavAdmin' };
+  Object.keys(navMap).forEach(function (k) {
+    var btn = document.getElementById(navMap[k]);
+    if (btn) btn.classList.toggle('active', k === view);
+  });
+  var hubHdr = document.getElementById('hub-header');
+  if (hubHdr) {
+    if (view === 'session') hubHdr.classList.add('hidden');
+    else {
+      hubHdr.classList.remove('hidden');
+      var t = HUB_HEADERS[view] || ['Cali Lab', ''];
+      var ht = document.getElementById('hubTitle');
+      var hs = document.getElementById('hubSub');
+      if (ht) ht.textContent = t[0];
+      if (hs) hs.textContent = t[1];
+    }
+  }
+  if (typeof currentMode !== 'undefined') currentMode = view === 'payment' ? 'record' : 'new';
+  var eb = document.getElementById('error-banner');
+  if (eb) eb.classList.remove('show');
+  window.scrollTo({ top: 0, behavior: 'auto' });
+  if (view === 'session' && typeof resizeCanvas === 'function') {
+    requestAnimationFrame(function () { resizeCanvas(); });
+  }
+}
+function switchMode(mode) {
+  calixSwitchHubView(mode === 'record' ? 'payment' : 'onboarding');
+}
+function submitTrainerOnboarding() {
+  var errEl = document.getElementById('toFormErr');
+  var fields = [
+    ['toFullName', 'Full name'], ['toPhone', 'Phone number'], ['toEmail', 'Email'],
+    ['toIc', 'IC / Passport'], ['toEmergencyContact', 'Emergency contact name'],
+    ['toEmergencyPhone', 'Emergency contact phone']
+  ];
+  for (var i = 0; i < fields.length; i++) {
+    var el = document.getElementById(fields[i][0]);
+    if (!el || !el.value.trim()) {
+      if (errEl) { errEl.textContent = 'Please enter ' + fields[i][1] + '.'; errEl.style.display = 'block'; }
+      if (el) el.focus();
+      return;
+    }
+  }
+  if (errEl) errEl.style.display = 'none';
+  var data = {
+    name: document.getElementById('toFullName').value.trim(),
+    phone: document.getElementById('toPhone').value.trim(),
+    email: document.getElementById('toEmail').value.trim(),
+    ic: document.getElementById('toIc').value.trim(),
+    emergencyContact: document.getElementById('toEmergencyContact').value.trim(),
+    emergencyPhone: document.getElementById('toEmergencyPhone').value.trim()
+  };
+  var btn = document.getElementById('toSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  if (!window.google || !google.script || !google.script.run) {
+    alert('Backend not configured.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Register Trainer'; }
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Register Trainer'; }
+      document.getElementById('toSuccessMsg').textContent = data.name + ' has been added to the Trainer sheet.';
+      document.querySelectorAll('#view-trainer .card, #view-trainer .submit-wrap').forEach(function (el) { el.classList.add('hidden'); });
+      document.getElementById('toSuccessCard').classList.add('show');
+      if (typeof calixlabRefreshTrainerDropdowns === 'function') calixlabRefreshTrainerDropdowns();
+    })
+    .withFailureHandler(function (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Register Trainer'; }
+      if (errEl) { errEl.textContent = e.message || 'Could not register trainer.'; errEl.style.display = 'block'; }
+    })
+    .addTrainer(data);
+}
+function resetTrainerOnboarding() {
+  ['toFullName','toPhone','toEmail','toIc','toEmergencyContact','toEmergencyPhone'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var errEl = document.getElementById('toFormErr');
+  if (errEl) errEl.style.display = 'none';
+  document.getElementById('toSuccessCard').classList.remove('show');
+  document.querySelectorAll('#view-trainer .card, #view-trainer .submit-wrap').forEach(function (el) { el.classList.remove('hidden'); });
+}
+document.addEventListener('DOMContentLoaded', function () {
+  calixSwitchHubView('onboarding');
+  var u = window.CALIXLAB_GAS_EXEC_URL || '';
+  if (!u || /YOUR_DEPLOYMENT_ID|PASTE_|REPLACE_/i.test(u)) {
+    var bar = document.createElement('div');
+    bar.setAttribute('role', 'alert');
+    bar.style.cssText = 'background:#3d2a00;color:#ffd48a;padding:10px 14px;font:500 13px/1.4 inherit;text-align:center;border-bottom:1px solid #5c4200';
+    bar.textContent = 'Onboarding saves are in local test mode. Set CALIXLAB_GAS_EXEC_URL in config.js (Apps Script /exec URL) for Google Sheets.';
+    var nav = document.querySelector('.hub-mode-switcher');
+    if (nav && nav.parentNode) nav.parentNode.insertBefore(bar, nav);
+  }
+});
+</script>
 
 
 <script src="image-compress.js"></script>
@@ -2690,33 +2839,6 @@ document.getElementById('waiverDate').textContent = new Date().toLocaleDateStrin
   window.google = { script: { run: run } };
   console.info('[Calixlab] Local dev mode. View test log: calixlabLocalLog() — clear: calixlabClearLocalLog()');
 })();
-function calixSwitchTab(which) {
-  var s = document.getElementById('session-panel');
-  var o = document.getElementById('onboard-panel');
-  var ts = document.getElementById('tabSession');
-  var to = document.getElementById('tabOnboard');
-  var on = which === 'onboard';
-  s.classList.toggle('active', !on);
-  o.classList.toggle('active', on);
-  ts.classList.toggle('active', !on);
-  to.classList.toggle('active', on);
-  window.scrollTo({ top: 0, behavior: 'auto' });
-  if (on && typeof resizeCanvas === 'function') {
-    requestAnimationFrame(function () { resizeCanvas(); });
-  }
-}
-document.addEventListener('DOMContentLoaded', function () {
-  calixSwitchTab('onboard');
-  var u = window.CALIXLAB_GAS_EXEC_URL || '';
-  if (!u || /YOUR_DEPLOYMENT_ID|PASTE_|REPLACE_/i.test(u)) {
-    var bar = document.createElement('div');
-    bar.setAttribute('role', 'alert');
-    bar.style.cssText = 'background:#3d2a00;color:#ffd48a;padding:10px 14px;font:500 13px/1.4 inherit;text-align:center;border-bottom:1px solid #5c4200';
-    bar.textContent = 'Onboarding saves are in local test mode. Set CALIXLAB_GAS_EXEC_URL in config.js (Apps Script /exec URL) for Google Sheets.';
-    var appbar = document.querySelector('.calix-appbar');
-    if (appbar && appbar.parentNode) appbar.parentNode.insertBefore(bar, appbar);
-  }
-});
 </script>
 
 </body>

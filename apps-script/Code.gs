@@ -113,11 +113,20 @@ function isTrainerHeader_(val) {
   return h === 'trainer' || h === 'name' || h === 'trainer name';
 }
 
+var TRAINER_HEADERS_ = [
+  'Trainer', 'Phone', 'Email', 'IC', 'Emergency Contact', 'Emergency Phone', 'Timestamp'
+];
+
 function ensureTrainerSheet_() {
   var sheet = getTrainerSheet_();
   if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1).setValue('Trainer').setFontWeight('bold');
+    sheet.getRange(1, 1, 1, TRAINER_HEADERS_.length).setValues([TRAINER_HEADERS_]).setFontWeight('bold');
     sheet.setFrozenRows(1);
+    return sheet;
+  }
+  var a1 = String(sheet.getRange(1, 1).getValue() || '').trim();
+  if (isTrainerHeader_(a1) && sheet.getLastColumn() < TRAINER_HEADERS_.length) {
+    sheet.getRange(1, 1, 1, TRAINER_HEADERS_.length).setValues([TRAINER_HEADERS_]).setFontWeight('bold');
   }
   return sheet;
 }
@@ -156,7 +165,16 @@ function addTrainer(payload) {
   var sheet = ensureTrainerSheet_();
   var existing = listTrainers();
   if (existing.indexOf(name) >= 0) throw new Error('Trainer already exists: ' + name);
-  sheet.appendRow([name]);
+  var row = [
+    name,
+    String((payload && payload.phone) || '').trim(),
+    String((payload && payload.email) || '').trim(),
+    String((payload && payload.ic) || '').trim(),
+    String((payload && payload.emergencyContact) || '').trim(),
+    String((payload && payload.emergencyPhone) || '').trim(),
+    new Date()
+  ];
+  sheet.appendRow(row);
   return { ok: true, name: name };
 }
 

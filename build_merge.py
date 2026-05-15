@@ -273,10 +273,23 @@ ob_style = ob_style.replace(
     ":scope {\n  -webkit-text-size-adjust: 100%;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;",
     1,
 )
-ob_scoped = f"@scope (#onboard-panel) {{\n{ob_style}\n}}"
+from hub_merge import (
+    HUB_APP_SHELL_CSS,
+    HUB_JS,
+    HUB_NAV_HTML,
+    TRAINER_PANEL_HTML,
+    prep_onboard_body,
+)
+
+ob_scoped = (
+    "@scope (#view-onboarding, #view-payment, #view-trainer, #view-admin) {\n"
+    + ob_style
+    + "\n}"
+)
 
 session_body = prep_session_body(extract_body_inner(SESSION))
-onboard_body = extract_body_inner(ONBOARD)
+_onboard_raw = extract_body_inner(ONBOARD)
+onboard_shared, onboard_client, onboard_payment, onboard_scripts = prep_onboard_body(_onboard_raw)
 
 APP_SHELL_CSS = """
 /* —— App shell (onboarding master theme) —— */
@@ -289,31 +302,7 @@ body.app-body {
   color: #1a1a1a;
   font-size: 16px;
 }
-#session-panel, #onboard-panel { display: none; }
-#session-panel.active, #onboard-panel.active { display: block; }
-.calix-appbar {
-  position: sticky; top: 0; z-index: 2000;
-  display: flex; align-items: center; justify-content: center;
-  padding: 10px 12px 0;
-  background: #f0efe9;
-}
-.calix-appbar-inner {
-  display: flex; width: 100%; max-width: 560px; margin: 0 auto;
-  background: white; border-radius: 12px; padding: 4px;
-  border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.calix-tab {
-  flex: 1; border: none; border-radius: 9px; padding: 11px 8px;
-  font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
-  background: transparent; color: #888;
-  transition: color .15s, background .15s;
-}
-.calix-tab.active {
-  background: #185FA5; color: white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-}
-.calix-tab:focus-visible { outline: 2px solid #185FA5; outline-offset: 2px; }
-""" + SHARED_HEADER_CSS + """
+""" + HUB_APP_SHELL_CSS + SHARED_HEADER_CSS + """
 /* Shared brand images */
 .calix-logo-full { max-width: min(300px, 94vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
@@ -545,33 +534,6 @@ STUB_JS = """
   window.google = { script: { run: run } };
   console.info('[Calixlab] Local dev mode. View test log: calixlabLocalLog() — clear: calixlabClearLocalLog()');
 })();
-function calixSwitchTab(which) {
-  var s = document.getElementById('session-panel');
-  var o = document.getElementById('onboard-panel');
-  var ts = document.getElementById('tabSession');
-  var to = document.getElementById('tabOnboard');
-  var on = which === 'onboard';
-  s.classList.toggle('active', !on);
-  o.classList.toggle('active', on);
-  ts.classList.toggle('active', !on);
-  to.classList.toggle('active', on);
-  window.scrollTo({ top: 0, behavior: 'auto' });
-  if (on && typeof resizeCanvas === 'function') {
-    requestAnimationFrame(function () { resizeCanvas(); });
-  }
-}
-document.addEventListener('DOMContentLoaded', function () {
-  calixSwitchTab('onboard');
-  var u = window.CALIXLAB_GAS_EXEC_URL || '';
-  if (!u || /YOUR_DEPLOYMENT_ID|PASTE_|REPLACE_/i.test(u)) {
-    var bar = document.createElement('div');
-    bar.setAttribute('role', 'alert');
-    bar.style.cssText = 'background:#3d2a00;color:#ffd48a;padding:10px 14px;font:500 13px/1.4 inherit;text-align:center;border-bottom:1px solid #5c4200';
-    bar.textContent = 'Onboarding saves are in local test mode. Set CALIXLAB_GAS_EXEC_URL in config.js (Apps Script /exec URL) for Google Sheets.';
-    var appbar = document.querySelector('.calix-appbar');
-    if (appbar && appbar.parentNode) appbar.parentNode.insertBefore(bar, appbar);
-  }
-});
 </script>
 """
 
@@ -594,21 +556,32 @@ out = f"""<!DOCTYPE html>
 </head>
 <body class="app-body">
 
-<header class="calix-appbar" role="navigation" aria-label="Main">
-  <div class="calix-appbar-inner">
-    <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
-    <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
-  </div>
-</header>
+{HUB_NAV_HTML}
 
-<div id="session-panel">
+{onboard_shared}
+
+<div id="view-onboarding" class="hub-view active">
+{onboard_client}
+</div>
+
+<div id="view-payment" class="hub-view">
+{onboard_payment}
+</div>
+
+<div id="session-panel" class="hub-view">
 {session_body}
 </div>
 
-<div id="onboard-panel" class="active">
-{onboard_body}
+<div id="view-trainer" class="hub-view">
+{TRAINER_PANEL_HTML}
 </div>
 
+<div id="view-admin" class="hub-view">
+  <div class="hub-admin-placeholder">Admin tools coming soon.</div>
+</div>
+
+{onboard_scripts}
+{HUB_JS}
 {GAS_SCRIPTS}
 {STUB_JS}
 </body>
