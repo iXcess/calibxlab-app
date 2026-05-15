@@ -30,3 +30,21 @@ curl -s "$EXEC?action=lookupClient&q=Test"
 ```
 
 POST `recordSessionLog` must return `ok:true` (not `Unknown action`).
+
+## Mobile QA (after UI changes)
+
+Test in Chrome DevTools or on a real phone at **320**, **390**, and **414** px width. Or run:
+
+```bash
+python3 scripts/mobile_layout_smoke.py
+```
+
+| View | Checks |
+|------|--------|
+| Onboarding → New Client | `row2` fields stack; waiver scroll + signature usable; no horizontal scroll |
+| Onboarding → Register Trainer | Trainer form full width; submit reachable |
+| Payment Record | Client search visible; summary stats readable; receipt upload tappable |
+| Session Log | Trainer dropdown + client search; package stats legible; signature pad full width |
+| Admin | Login fields usable; payroll date inputs; generated cards readable |
+
+Hard refresh after deploy (cache can show old CSS).

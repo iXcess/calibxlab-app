@@ -4,8 +4,8 @@ import re
 HUB_NAV_HTML = """
 <nav class="hub-mode-switcher" role="navigation" aria-label="Main">
   <button type="button" class="mode-btn active" id="hubNavOnboarding" onclick="calixSwitchHubView('onboarding')">Onboarding</button>
-  <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')">Payment Record</button>
-  <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')">Session Log</button>
+  <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')" aria-label="Payment Record">Payment</button>
+  <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')" aria-label="Session Log">Session</button>
   <button type="button" class="mode-btn" id="hubNavAdmin" onclick="calixSwitchHubView('admin')">Admin</button>
 </nav>
 <div id="hub-header" class="header">
@@ -68,7 +68,7 @@ HUB_APP_SHELL_CSS = """
 .hub-view { display: none; }
 .hub-view.active { display: block; }
 .hub-mode-switcher {
-  position: sticky; top: 0; z-index: 2000;
+  position: sticky; top: env(safe-area-inset-top, 0); z-index: 2000;
   display: flex; max-width: 560px; width: calc(100% - 32px); margin: 12px auto;
   background: white; border-radius: 12px; padding: 4px;
   border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
@@ -109,13 +109,20 @@ HUB_APP_SHELL_CSS = """
   border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .onboard-inner-switcher .mode-btn {
-  flex: 1; padding: 10px 8px; border: none; border-radius: 9px;
-  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  flex: 1; min-width: 0; padding: 10px 6px; border: none; border-radius: 9px;
+  font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
   background: transparent; color: #888; transition: all 0.2s;
+}
+@media (min-width: 420px) {
+  .onboard-inner-switcher .mode-btn { font-size: 13px; padding: 10px 8px; }
 }
 .onboard-inner-switcher .mode-btn.active {
   background: #185FA5; color: white;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.onboard-inner-switcher .mode-btn:focus-visible { outline: 2px solid #185FA5; outline-offset: 2px; }
+@media (max-width: 380px) {
+  #onboardNavTrainer { font-size: 11px; }
 }
 """
 

@@ -23,12 +23,14 @@ body.app-body {
   background: #f0efe9;
   color: #1a1a1a;
   font-size: 16px;
+  overflow-x: clip;
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 }
 
 .hub-view { display: none; }
 .hub-view.active { display: block; }
 .hub-mode-switcher {
-  position: sticky; top: 0; z-index: 2000;
+  position: sticky; top: env(safe-area-inset-top, 0); z-index: 2000;
   display: flex; max-width: 560px; width: calc(100% - 32px); margin: 12px auto;
   background: white; border-radius: 12px; padding: 4px;
   border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
@@ -69,13 +71,20 @@ body.app-body {
   border: 1px solid #e8e8e8; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 .onboard-inner-switcher .mode-btn {
-  flex: 1; padding: 10px 8px; border: none; border-radius: 9px;
-  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  flex: 1; min-width: 0; padding: 10px 6px; border: none; border-radius: 9px;
+  font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;
   background: transparent; color: #888; transition: all 0.2s;
+}
+@media (min-width: 420px) {
+  .onboard-inner-switcher .mode-btn { font-size: 13px; padding: 10px 8px; }
 }
 .onboard-inner-switcher .mode-btn.active {
   background: #185FA5; color: white;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.onboard-inner-switcher .mode-btn:focus-visible { outline: 2px solid #185FA5; outline-offset: 2px; }
+@media (max-width: 380px) {
+  #onboardNavTrainer { font-size: 11px; }
 }
 
 .header { text-align: center; margin-bottom: 24px; }
@@ -94,6 +103,34 @@ body.app-body {
   background: #E6F1FB; border: 1px solid #B5D4F4; border-radius: 20px;
   font-size: 13px; color: #0C447C; font-weight: 500;
 }
+
+/* Mobile polish — test widths: 320 / 375 / 390 / 414 */
+#hub-header { margin-bottom: 20px; }
+@media (max-width: 480px) {
+  .row2 { grid-template-columns: 1fr; }
+  .rp-summary { grid-template-columns: 1fr 1fr; }
+  .prev-grid { grid-template-columns: 1fr; }
+  .trainer-select-row { flex-wrap: wrap; }
+  .trainer-select-row select { flex: 1 1 100%; min-width: 0; }
+  .trainer-select-row .icon-btn { min-width: 48px; min-height: 48px; }
+  .preset-row .preset-btn { flex: 1 1 calc(50% - 4px); min-width: calc(50% - 4px); }
+  #grp-leadType.toggle-group { width: 100%; }
+  #grp-leadType .toggle-btn { width: 100%; text-align: left; }
+  .waiver-scroll { height: min(260px, 40vh); -webkit-overflow-scrolling: touch; }
+  .hub-view.active .card,
+  .admin-panel-wrap .card,
+  .payroll-results .card { margin-left: auto; margin-right: auto; width: calc(100% - 24px); max-width: 560px; }
+  #hub-header { margin-bottom: 16px; }
+}
+@media (max-width: 360px) {
+  .rp-summary { grid-template-columns: 1fr; }
+  .rp-val { font-size: 15px; word-break: break-word; }
+}
+.rp-val, .admin-msg, #rpSelectedName, .payroll-trainer-card .section-title {
+  word-break: break-word;
+}
+.lookup-card, #lookupResults, #rpLookupResults { -webkit-overflow-scrolling: touch; }
+.icon-btn, .chip-btn, .toggle-btn, .preset-btn, .mode-btn { min-height: 44px; }
 
 /* Shared brand images */
 .calix-logo-full { max-width: min(300px, 94vw); height: auto; display: block; margin: 0 auto; }
@@ -450,6 +487,20 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 @keyframes up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
 @keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
 .s-ring { animation: pop .4s cubic-bezier(.34,1.56,.64,1); }
+
+
+
+@media (max-width: 480px) {
+  .si-grid { grid-template-columns: 1fr 1fr; }
+  .prev-grid { grid-template-columns: 1fr; }
+  .lead-auto { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .chip { flex: 1 1 calc(50% - 4px); min-width: calc(50% - 4px); }
+}
+@media (max-width: 360px) {
+  .si-grid { grid-template-columns: 1fr; }
+  .si-v { font-size: 20px; }
+}
+.adrop { -webkit-overflow-scrolling: touch; }
 
 }
 </style>
@@ -860,8 +911,8 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 
 <nav class="hub-mode-switcher" role="navigation" aria-label="Main">
   <button type="button" class="mode-btn active" id="hubNavOnboarding" onclick="calixSwitchHubView('onboarding')">Onboarding</button>
-  <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')">Payment Record</button>
-  <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')">Session Log</button>
+  <button type="button" class="mode-btn" id="hubNavPayment" onclick="calixSwitchHubView('payment')" aria-label="Payment Record">Payment</button>
+  <button type="button" class="mode-btn" id="hubNavSession" onclick="calixSwitchHubView('session')" aria-label="Session Log">Session</button>
   <button type="button" class="mode-btn" id="hubNavAdmin" onclick="calixSwitchHubView('admin')">Admin</button>
 </nav>
 <div id="hub-header" class="header">

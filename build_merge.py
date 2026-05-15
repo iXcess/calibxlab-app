@@ -225,6 +225,20 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 .s-ring { animation: pop .4s cubic-bezier(.34,1.56,.64,1); }
 """
 
+SESSION_MOBILE_CSS = """
+@media (max-width: 480px) {
+  .si-grid { grid-template-columns: 1fr 1fr; }
+  .prev-grid { grid-template-columns: 1fr; }
+  .lead-auto { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .chip { flex: 1 1 calc(50% - 4px); min-width: calc(50% - 4px); }
+}
+@media (max-width: 360px) {
+  .si-grid { grid-template-columns: 1fr; }
+  .si-v { font-size: 20px; }
+}
+.adrop { -webkit-overflow-scrolling: touch; }
+"""
+
 SESSION_SCOPE_CSS = """
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :scope {
@@ -241,7 +255,7 @@ SESSION_SCOPE_CSS = """
 
 
 def prep_session_style(_raw: str, master: str) -> str:
-    return f"{SESSION_SCOPE_CSS}\n\n{master}\n\n{SESSION_COMPONENT_CSS}"
+    return f"{SESSION_SCOPE_CSS}\n\n{master}\n\n{SESSION_COMPONENT_CSS}\n\n{SESSION_MOBILE_CSS}"
 
 
 def prep_session_body(body: str) -> str:
@@ -294,6 +308,36 @@ session_body = prep_session_body(extract_body_inner(SESSION))
 _onboard_raw = extract_body_inner(ONBOARD)
 onboard_shared, onboard_client, onboard_payment, onboard_scripts = prep_onboard_body(_onboard_raw)
 
+MOBILE_RESPONSIVE_CSS = """
+/* Mobile polish — test widths: 320 / 375 / 390 / 414 */
+#hub-header { margin-bottom: 20px; }
+@media (max-width: 480px) {
+  .row2 { grid-template-columns: 1fr; }
+  .rp-summary { grid-template-columns: 1fr 1fr; }
+  .prev-grid { grid-template-columns: 1fr; }
+  .trainer-select-row { flex-wrap: wrap; }
+  .trainer-select-row select { flex: 1 1 100%; min-width: 0; }
+  .trainer-select-row .icon-btn { min-width: 48px; min-height: 48px; }
+  .preset-row .preset-btn { flex: 1 1 calc(50% - 4px); min-width: calc(50% - 4px); }
+  #grp-leadType.toggle-group { width: 100%; }
+  #grp-leadType .toggle-btn { width: 100%; text-align: left; }
+  .waiver-scroll { height: min(260px, 40vh); -webkit-overflow-scrolling: touch; }
+  .hub-view.active .card,
+  .admin-panel-wrap .card,
+  .payroll-results .card { margin-left: auto; margin-right: auto; width: calc(100% - 24px); max-width: 560px; }
+  #hub-header { margin-bottom: 16px; }
+}
+@media (max-width: 360px) {
+  .rp-summary { grid-template-columns: 1fr; }
+  .rp-val { font-size: 15px; word-break: break-word; }
+}
+.rp-val, .admin-msg, #rpSelectedName, .payroll-trainer-card .section-title {
+  word-break: break-word;
+}
+.lookup-card, #lookupResults, #rpLookupResults { -webkit-overflow-scrolling: touch; }
+.icon-btn, .chip-btn, .toggle-btn, .preset-btn, .mode-btn { min-height: 44px; }
+"""
+
 APP_SHELL_CSS = """
 /* —— App shell (onboarding master theme) —— */
 html { -webkit-text-size-adjust: 100%; }
@@ -304,8 +348,10 @@ body.app-body {
   background: #f0efe9;
   color: #1a1a1a;
   font-size: 16px;
+  overflow-x: clip;
+  padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
 }
-""" + HUB_APP_SHELL_CSS + SHARED_HEADER_CSS + """
+""" + HUB_APP_SHELL_CSS + SHARED_HEADER_CSS + MOBILE_RESPONSIVE_CSS + """
 /* Shared brand images */
 .calix-logo-full { max-width: min(300px, 94vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
