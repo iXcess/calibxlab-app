@@ -27,27 +27,39 @@ def extract_master_panel_css(ob_style: str) -> str:
 
 
 SHARED_HEADER_CSS = """
-.header { text-align: center; margin-bottom: 24px; }
-.logo {
-  margin: 18px auto 22px;
-  display: flex; align-items: center; justify-content: center;
+#hub-header.header {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 20px 16px 0;
+  margin-bottom: 24px;
+  box-sizing: border-box;
+  text-align: center;
 }
-.logo img.calix-logo-full {
-  max-width: min(195px, 94vw); height: auto; display: block;
+#hub-header .logo {
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.header h1 { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1.2; }
-.header p { font-size: 14px; color: #666; margin-top: 4px; }
+#hub-header .logo img.calix-logo-full {
+  max-width: min(195px, 94vw);
+  height: auto;
+  display: block;
+}
+#hub-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0C447C;
+  line-height: 1.2;
+  margin: 0;
+}
+#hub-header p {
+  font-size: 14px;
+  color: #666;
+  margin: 4px 0 0;
+}
 """
-
-SESSION_HEADER_HTML = """
-<div class="header">
-  <motion class="logo">
-    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="182" height="36"/>
-  </div>
-  <h1>Session Log</h1>
-  <p>Submit immediately after every session.</p>
-</motion>
-""".replace("<motion ", "<div ").replace("</motion>", "</div>")
 
 SESSION_COMPONENT_CSS = """
 /* Session-only UI (onboarding master theme) */
@@ -239,7 +251,7 @@ SESSION_SCOPE_CSS = """
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f0efe9;
   min-height: 100vh;
-  padding: 20px 16px 60px;
+  padding: 0 16px 60px;
   color: #1a1a1a;
   font-size: 16px;
   -webkit-tap-highlight-color: transparent;
@@ -254,7 +266,7 @@ def prep_session_style(_raw: str, master: str) -> str:
 def prep_session_body(body: str) -> str:
     body = re.sub(
         r'<div class="hdr">[\s\S]*?\n\n<div class="prog">',
-        SESSION_HEADER_HTML.strip() + "\n\n<div class=\"prog\">",
+        '<div class="prog">',
         body,
         count=1,
     )
@@ -297,6 +309,7 @@ ob_style = ob_style.replace(
     ":scope {\n  -webkit-text-size-adjust: 100%;\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;",
     1,
 )
+ob_style = ob_style.replace("padding: 20px 16px 60px", "padding: 0 16px 60px")
 from hub_merge import (
     ADMIN_JS,
     ADMIN_PANEL_HTML,
@@ -320,7 +333,6 @@ onboard_shared, onboard_client, onboard_payment, onboard_scripts = prep_onboard_
 
 MOBILE_RESPONSIVE_CSS = """
 /* Mobile polish — test widths: 320 / 375 / 390 / 414 */
-#hub-header { margin-bottom: 20px; }
 @media (max-width: 480px) {
   .row2 { grid-template-columns: 1fr; }
   .rp-summary { grid-template-columns: 1fr 1fr; }
@@ -335,7 +347,6 @@ MOBILE_RESPONSIVE_CSS = """
   .hub-view.active .card,
   .admin-panel-wrap .card,
   .payroll-results .card { margin-left: auto; margin-right: auto; width: calc(100% - 24px); max-width: 560px; }
-  #hub-header { margin-bottom: 16px; }
 }
 @media (max-width: 360px) {
   .rp-summary { grid-template-columns: 1fr; }

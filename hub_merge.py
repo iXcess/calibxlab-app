@@ -393,6 +393,7 @@ var calixOnboardMode = 'client';
 var HUB_HEADERS = {
   onboarding: ['Client Onboarding', 'New client registration'],
   payment: ['Payment Record', 'Record instalment payment'],
+  session: ['Session Log', 'Submit immediately after every session.'],
   admin: ['Admin', '']
 };
 function calixSwitchOnboardMode(mode) {
@@ -436,20 +437,17 @@ function calixSwitchHubView(view) {
   if (typeof hideProgress === 'function') hideProgress();
   var hubHdr = document.getElementById('hub-header');
   if (hubHdr) {
-    if (view === 'session') hubHdr.classList.add('hidden');
-    else {
-      hubHdr.classList.remove('hidden');
-      if (view === 'onboarding') {
-        calixSwitchOnboardMode(calixOnboardMode);
-      } else {
-        var t = HUB_HEADERS[view] || ['Cali Lab', ''];
-        var ht = document.getElementById('hubTitle');
-        var hs = document.getElementById('hubSub');
-        if (ht) ht.textContent = t[0];
-        if (hs) hs.textContent = t[1];
-        var innerNav = document.querySelector('.onboard-inner-switcher');
-        if (innerNav) innerNav.classList.add('hidden');
-      }
+    hubHdr.classList.remove('hidden');
+    if (view === 'onboarding') {
+      calixSwitchOnboardMode(calixOnboardMode);
+    } else {
+      var t = HUB_HEADERS[view] || ['Cali Lab', ''];
+      var ht = document.getElementById('hubTitle');
+      var hs = document.getElementById('hubSub');
+      if (ht) ht.textContent = t[0];
+      if (hs) hs.textContent = t[1];
+      var innerNav = document.querySelector('.onboard-inner-switcher');
+      if (innerNav) innerNav.classList.toggle('hidden', view !== 'onboarding');
     }
   }
   if (typeof currentMode !== 'undefined') currentMode = view === 'payment' ? 'record' : 'new';

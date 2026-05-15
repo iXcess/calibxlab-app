@@ -87,19 +87,40 @@ body.app-body {
   #onboardNavTrainer { font-size: 11px; }
 }
 
-.header { text-align: center; margin-bottom: 24px; }
-.logo {
-  margin: 18px auto 22px;
-  display: flex; align-items: center; justify-content: center;
+#hub-header.header {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 20px 16px 0;
+  margin-bottom: 24px;
+  box-sizing: border-box;
+  text-align: center;
 }
-.logo img.calix-logo-full {
-  max-width: min(195px, 94vw); height: auto; display: block;
+#hub-header .logo {
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.header h1 { font-size: 22px; font-weight: 700; color: #0C447C; line-height: 1.2; }
-.header p { font-size: 14px; color: #666; margin-top: 4px; }
+#hub-header .logo img.calix-logo-full {
+  max-width: min(195px, 94vw);
+  height: auto;
+  display: block;
+}
+#hub-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0C447C;
+  line-height: 1.2;
+  margin: 0;
+}
+#hub-header p {
+  font-size: 14px;
+  color: #666;
+  margin: 4px 0 0;
+}
 
 /* Mobile polish — test widths: 320 / 375 / 390 / 414 */
-#hub-header { margin-bottom: 20px; }
 @media (max-width: 480px) {
   .row2 { grid-template-columns: 1fr; }
   .rp-summary { grid-template-columns: 1fr 1fr; }
@@ -114,7 +135,6 @@ body.app-body {
   .hub-view.active .card,
   .admin-panel-wrap .card,
   .payroll-results .card { margin-left: auto; margin-right: auto; width: calc(100% - 24px); max-width: 560px; }
-  #hub-header { margin-bottom: 16px; }
 }
 @media (max-width: 360px) {
   .rp-summary { grid-template-columns: 1fr; }
@@ -248,7 +268,7 @@ input[type=password]:focus {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f0efe9;
   min-height: 100vh;
-  padding: 20px 16px 60px;
+  padding: 0 16px 60px;
   color: #1a1a1a;
   font-size: 16px;
   -webkit-tap-highlight-color: transparent;
@@ -517,7 +537,7 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 :scope {
   -webkit-text-size-adjust: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f0efe9; min-height: 100vh; padding: 20px 16px 60px;
+  background: #f0efe9; min-height: 100vh; padding: 0 16px 60px;
   color: #1a1a1a; font-size: 16px; -webkit-tap-highlight-color: transparent;
 }
 
@@ -1449,14 +1469,6 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 </div>
 
 <div id="session-panel" class="hub-view">
-<div class="header">
-  <div class="logo">
-    <img class="calix-logo-full" src="assets/calixlab-logo-header.png" alt="Cali Lab" width="182" height="36"/>
-  </div>
-  <h1>Session Log</h1>
-  <p>Submit immediately after every session.</p>
-</div>
-
 <div class="prog">
   <div class="prog-top">
     <span class="prog-step" id="pStep">Trainer</span>
@@ -2788,6 +2800,7 @@ var calixOnboardMode = 'client';
 var HUB_HEADERS = {
   onboarding: ['Client Onboarding', 'New client registration'],
   payment: ['Payment Record', 'Record instalment payment'],
+  session: ['Session Log', 'Submit immediately after every session.'],
   admin: ['Admin', '']
 };
 function calixSwitchOnboardMode(mode) {
@@ -2831,20 +2844,17 @@ function calixSwitchHubView(view) {
   if (typeof hideProgress === 'function') hideProgress();
   var hubHdr = document.getElementById('hub-header');
   if (hubHdr) {
-    if (view === 'session') hubHdr.classList.add('hidden');
-    else {
-      hubHdr.classList.remove('hidden');
-      if (view === 'onboarding') {
-        calixSwitchOnboardMode(calixOnboardMode);
-      } else {
-        var t = HUB_HEADERS[view] || ['Cali Lab', ''];
-        var ht = document.getElementById('hubTitle');
-        var hs = document.getElementById('hubSub');
-        if (ht) ht.textContent = t[0];
-        if (hs) hs.textContent = t[1];
-        var innerNav = document.querySelector('.onboard-inner-switcher');
-        if (innerNav) innerNav.classList.add('hidden');
-      }
+    hubHdr.classList.remove('hidden');
+    if (view === 'onboarding') {
+      calixSwitchOnboardMode(calixOnboardMode);
+    } else {
+      var t = HUB_HEADERS[view] || ['Cali Lab', ''];
+      var ht = document.getElementById('hubTitle');
+      var hs = document.getElementById('hubSub');
+      if (ht) ht.textContent = t[0];
+      if (hs) hs.textContent = t[1];
+      var innerNav = document.querySelector('.onboard-inner-switcher');
+      if (innerNav) innerNav.classList.toggle('hidden', view !== 'onboarding');
     }
   }
   if (typeof currentMode !== 'undefined') currentMode = view === 'payment' ? 'record' : 'new';
