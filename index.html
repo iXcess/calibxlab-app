@@ -34,7 +34,7 @@ body.app-body {
   box-shadow: 0 4px 16px rgba(14,28,42,.18);
 }
 .calix-appbar-inner {
-  display: flex; width: 100%; max-width: 560px;
+  display: flex; width: 100%; max-width: 560px; margin: 0 auto;
   background: rgba(255,255,255,.1); border-radius: 12px; padding: 4px;
   border: 1px solid rgba(255,255,255,.12);
 }
@@ -49,26 +49,6 @@ body.app-body {
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
 }
 .calix-tab:focus-visible { outline: 2px solid #7ab8f5; outline-offset: 2px; }
-.calix-appbar-row {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; max-width: 560px; margin: 0 auto 8px;
-}
-.calix-appbar-brand {
-  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-  text-decoration: none; color: inherit;
-}
-.calix-appbar-mark {
-  width: 36px; height: 36px; object-fit: contain;
-  filter: brightness(0) invert(1); opacity: .95;
-}
-.calix-appbar-wordmark {
-  height: 22px; width: auto; display: none;
-  filter: brightness(0) invert(1); opacity: .95;
-}
-@media (min-width: 400px) {
-  .calix-appbar-wordmark { display: block; }
-}
-.calix-appbar .calix-appbar-inner { flex: 1; margin: 0; }
 /* Shared brand images (usable inside scoped panels) */
 .calix-logo-full { max-width: min(280px, 92vw); height: auto; display: block; margin: 0 auto; }
 .calix-logo-mark { width: 48px; height: 48px; object-fit: contain; display: block; }
@@ -811,15 +791,9 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
 <body class="app-body">
 
 <header class="calix-appbar" role="navigation" aria-label="Main">
-  <div class="calix-appbar-row">
-    <div class="calix-appbar-brand" aria-hidden="true">
-      <img class="calix-appbar-mark" src="assets/calixlab-mark.png" alt="" width="36" height="36"/>
-      <img class="calix-appbar-wordmark" src="assets/calixlab-logo-header.png" alt="Cali Lab" height="22"/>
-    </div>
-    <div class="calix-appbar-inner">
-      <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
-      <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
-    </div>
+  <div class="calix-appbar-inner">
+    <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
+    <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
   </div>
 </header>
 
