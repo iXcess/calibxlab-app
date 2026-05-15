@@ -1,10 +1,8 @@
 /**
- * GitHub Pages: call Apps Script web app via GET (POST redirects drop the body).
+ * GitHub Pages → Apps Script web app.
+ * Reads: GET. Writes (onboard, payment, trainers): POST (large payloads fail as GET).
  */
 (function () {
-  /** Entire JSON body in URL; images should be pre-compressed via image-compress.js */
-  var MAX_GET_PAYLOAD = 200000;
-
   function gasUrl() {
     var u = window.CALIXLAB_GAS_EXEC_URL || '';
     if (!u || /YOUR_DEPLOYMENT_ID|PASTE_|REPLACE_/i.test(u)) return '';
@@ -21,6 +19,21 @@
     });
   }
 
+  function callGasGet(url, query) {
+    return fetch(url + '?' + query, { method: 'GET', mode: 'cors' }).then(parseResponse);
+  }
+
+  function callGasPost(url, action, payload) {
+    var body = JSON.stringify({ action: action, payload: payload == null ? {} : payload });
+    return fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: body
+    }).then(parseResponse);
+  }
+
   function callGas(action, payload) {
     var url = gasUrl();
     if (!url) {
@@ -31,24 +44,14 @@
 
     if (action === 'lookupClient') {
       var q = encodeURIComponent(String(payload == null ? '' : payload));
-      return fetch(url + '?action=lookupClient&q=' + q, { method: 'GET', mode: 'cors' })
-        .then(parseResponse);
+      return callGasGet(url, 'action=lookupClient&q=' + q);
     }
 
     if (action === 'listTrainers') {
-      return fetch(url + '?action=listTrainers', { method: 'GET', mode: 'cors' })
-        .then(parseResponse);
+      return callGasGet(url, 'action=listTrainers');
     }
 
-    var json = JSON.stringify(payload == null ? {} : payload);
-    if (json.length > MAX_GET_PAYLOAD) {
-      return Promise.reject(new Error(
-        'Form data is too large for this connection (receipt/signature). Try smaller images or contact support.'
-      ));
-    }
-    var u = url + '?action=' + encodeURIComponent(action) +
-      '&payload=' + encodeURIComponent(json);
-    return fetch(u, { method: 'GET', mode: 'cors' }).then(parseResponse);
+    return callGasPost(url, action, payload);
   }
 
   function createRunner() {
@@ -91,5 +94,5 @@
     },
     configurable: true
   });
-  console.info('[Calixlab] Apps Script backend (GET):', gasUrl());
+  console.info('[Calixlab] Apps Script backend:', gasUrl());
 })();
