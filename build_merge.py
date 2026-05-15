@@ -234,8 +234,13 @@ SESSION_MOBILE_CSS = """
 @media (max-width: 480px) {
   .si-grid { grid-template-columns: 1fr 1fr; }
   .prev-grid { grid-template-columns: 1fr; }
-  .lead-auto { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .chip { flex: 1 1 calc(50% - 4px); min-width: calc(50% - 4px); }
+  .lead-auto { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .chips {
+    gap: 12px;
+    row-gap: 12px;
+    column-gap: 10px;
+  }
+  .chip { flex: 1 1 calc(50% - 6px); min-width: calc(50% - 6px); box-sizing: border-box; }
 }
 @media (max-width: 360px) {
   .si-grid { grid-template-columns: 1fr; }
@@ -321,9 +326,62 @@ from hub_merge import (
     prep_onboard_body,
 )
 
+MOBILE_PILL_CSS = """
+/* Pill / chip groups — inside @scope so these win over base gap:8px */
+@media (max-width: 480px) {
+  .toggle-group,
+  .chip-group,
+  .preset-row {
+    gap: 12px;
+    row-gap: 12px;
+    column-gap: 10px;
+  }
+  .toggle-group.toggle-group--stack,
+  #grp-leadType,
+  #grp-packageType,
+  #grp-instalmentPlan,
+  #grp-paymentMode,
+  #grp-fitnessLevel,
+  #grp-rpPayMethod {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+    row-gap: 12px;
+  }
+  .toggle-group.toggle-group--stack > .toggle-btn,
+  #grp-leadType > .toggle-btn,
+  #grp-packageType > .toggle-btn,
+  #grp-instalmentPlan > .toggle-btn,
+  #grp-paymentMode > .toggle-btn,
+  #grp-fitnessLevel > .toggle-btn,
+  #grp-rpPayMethod > .toggle-btn {
+    width: 100%;
+    max-width: 100%;
+    text-align: left;
+    box-sizing: border-box;
+  }
+  .chip-group .chip-btn {
+    flex: 1 1 calc(50% - 6px);
+    min-width: calc(50% - 6px);
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .preset-row .preset-btn {
+    flex: 1 1 calc(50% - 6px);
+    min-width: calc(50% - 6px);
+  }
+  .row2 > .field + .field {
+    margin-top: 4px;
+  }
+}
+"""
+
 ob_scoped = (
     "@scope (#view-onboarding, #view-payment, #view-admin) {\n"
     + ob_style
+    + MOBILE_PILL_CSS
     + "\n}"
 )
 
@@ -340,9 +398,6 @@ MOBILE_RESPONSIVE_CSS = """
   .trainer-select-row { flex-wrap: wrap; }
   .trainer-select-row select { flex: 1 1 100%; min-width: 0; }
   .trainer-select-row .icon-btn { min-width: 48px; min-height: 48px; }
-  .preset-row .preset-btn { flex: 1 1 calc(50% - 4px); min-width: calc(50% - 4px); }
-  #grp-leadType.toggle-group { width: 100%; }
-  #grp-leadType .toggle-btn { width: 100%; text-align: left; }
   .waiver-scroll { height: min(260px, 40vh); -webkit-overflow-scrolling: touch; }
   .hub-view.active .card,
   .admin-panel-wrap .card,
