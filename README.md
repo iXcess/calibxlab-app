@@ -23,6 +23,23 @@ python3 build_merge.py
 
 ## Deploy
 
-This repo is a static site (`index.html`). Enable **GitHub Pages** (branch `main`, folder `/ (root)`) for a public URL.
+### Static UI (GitHub Pages)
 
-Onboarding **client lookup / save** expects [Google Apps Script](https://developers.google.com/apps-script) (`google.script.run`) when deployed inside that environment. Local preview includes a stub so the UI can be exercised without Sheets/Drive.
+Site: [https://ixcess.github.io/calibxlab-app/](https://ixcess.github.io/calibxlab-app/)
+
+Serve `index.html`, `config.js`, and `gas-client.js` from the repo root.
+
+### Form submissions → Google Sheet
+
+GitHub Pages cannot run `google.script.run`. After you deploy **`apps-script/`** as a Google Apps Script **web app**, paste the `/exec` URL into **`config.js`** (`CALIXLAB_GAS_EXEC_URL`) and push. See **`apps-script/DEPLOY.md`**.
+
+| File | Role |
+|------|------|
+| `config.js` | Apps Script web app `/exec` URL (required for live onboarding) |
+| `gas-client.js` | `fetch` bridge; keeps existing onboarding JS working |
+| `apps-script/Config.gs` | Spreadsheet routing (`ACTIVE_TARGET`, production ID) |
+| `apps-script/Code.gs` | `doPost` API + `onboardClient`, `lookupClient`, `recordPayment` |
+
+**Session Log** works on Pages without Apps Script (clipboard). **Onboarding** / **Record payment** need `config.js` set.
+
+Without a valid URL, the app runs in **local test mode** (localStorage + banner).

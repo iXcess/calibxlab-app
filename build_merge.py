@@ -93,36 +93,77 @@ body.app-body {
   box-shadow: 0 1px 4px rgba(0,0,0,.12);
 }
 .calix-tab:focus-visible { outline: 2px solid #7ab8f5; outline-offset: 2px; }
-.calix-demonote {
-  max-width: 560px; margin: 0 auto; padding: 8px 16px 0;
-  font-size: 12px; color: #5a6b7a; text-align: center; line-height: 1.45;
-}
+"""
+
+GAS_SCRIPTS = """
+<script src="config.js"></script>
+<script src="gas-client.js"></script>
 """
 
 STUB_JS = """
 <script>
-/* Local preview: Apps Script bridge is absent — stub google.script.run */
+/* Local preview when config.js has no Apps Script URL. Submissions → localStorage. */
 (function () {
-  if (window.google && window.google.script && window.google.script.run && window.google.script.run.withSuccessHandler) return;
+  var runDesc = window.google && window.google.script &&
+    Object.getOwnPropertyDescriptor(window.google.script, 'run');
+  if (runDesc && runDesc.get) return;
+  if (window.google && window.google.script && window.google.script.run &&
+      window.google.script.run.withSuccessHandler && !runDesc) return;
+  var LS_KEY = 'calixlab_local_test_log';
+  function loadLog() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
+  }
+  function saveLog(entry) {
+    var log = loadLog();
+    log.unshift(entry);
+    localStorage.setItem(LS_KEY, JSON.stringify(log.slice(0, 50)));
+    console.log('[Calixlab local test]', entry.type, entry);
+  }
+  window.calixlabLocalLog = loadLog;
+  window.calixlabClearLocalLog = function () { localStorage.removeItem(LS_KEY); };
   var run = {
     _ok: function () {},
     _bad: function () {},
     withSuccessHandler: function (fn) { this._ok = fn; return this; },
     withFailureHandler: function (fn) { this._bad = fn; return this; },
-    lookupClient: function () {
+    lookupClient: function (q) {
       var self = this;
-      setTimeout(function () { self._ok([]); }, 120);
+      setTimeout(function () {
+        var log = loadLog();
+        var matches = log.filter(function (e) {
+          return e.type === 'onboard' && e.data && e.data.fullName &&
+            e.data.fullName.toLowerCase().indexOf(String(q || '').toLowerCase()) >= 0;
+        });
+        if (!matches.length) { self._ok([]); return; }
+        self._ok(matches.map(function (m, i) {
+          return {
+            fullName: m.data.fullName, trainerName: m.data.trainerName || 'Alex',
+            packageType: m.data.packageType || '1-1', amountPaid: parseFloat(m.data.amountPaid) || 0,
+            totalValue: parseFloat(m.data.totalPackageValue) || 0, outstanding: 0,
+            sessionsRemaining: parseInt(m.data.sessions, 10) || 0,
+            instalmentsPaid: 1, totalInstalments: 1, isInstalment: false,
+            rowIndex: i + 2
+          };
+        }));
+      }, 120);
     },
-    onboardClient: function () {
+    onboardClient: function (data) {
       var self = this;
-      setTimeout(function () { self._ok({ folderUrl: 'https://example.com' }); }, 350);
+      setTimeout(function () {
+        saveLog({ type: 'onboard', at: new Date().toISOString(), data: data });
+        self._ok({ folderUrl: '', rowIndex: 2, local: true });
+      }, 350);
     },
-    recordPayment: function () {
+    recordPayment: function (data) {
       var self = this;
-      setTimeout(function () { self._ok({}); }, 350);
+      setTimeout(function () {
+        saveLog({ type: 'payment', at: new Date().toISOString(), data: data });
+        self._ok({ folderUrl: '', local: true });
+      }, 350);
     }
   };
   window.google = { script: { run: run } };
+  console.info('[Calixlab] Local dev mode. View test log: calixlabLocalLog() — clear: calixlabClearLocalLog()');
 })();
 function calixSwitchTab(which) {
   var s = document.getElementById('session-panel');
@@ -140,7 +181,16 @@ function calixSwitchTab(which) {
   }
 }
 document.addEventListener('DOMContentLoaded', function () {
-  calixSwitchTab('session');
+  calixSwitchTab('onboard');
+  var u = window.CALIXLAB_GAS_EXEC_URL || '';
+  if (!u || /YOUR_DEPLOYMENT_ID|PASTE_|REPLACE_/i.test(u)) {
+    var bar = document.createElement('div');
+    bar.setAttribute('role', 'alert');
+    bar.style.cssText = 'background:#3d2a00;color:#ffd48a;padding:10px 14px;font:500 13px/1.4 DM Sans,sans-serif;text-align:center;border-bottom:1px solid #5c4200';
+    bar.textContent = 'Onboarding saves are in local test mode. Set CALIXLAB_GAS_EXEC_URL in config.js (Apps Script /exec URL) for Google Sheets.';
+    var appbar = document.querySelector('.calix-appbar');
+    if (appbar && appbar.parentNode) appbar.parentNode.insertBefore(bar, appbar);
+  }
 });
 </script>
 """
@@ -166,20 +216,20 @@ out = f"""<!DOCTYPE html>
 
 <header class="calix-appbar" role="navigation" aria-label="Main">
   <div class="calix-appbar-inner">
-    <button type="button" class="calix-tab active" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
-    <button type="button" class="calix-tab" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
+    <button type="button" class="calix-tab active" id="tabOnboard" onclick="calixSwitchTab('onboard')">Onboarding</button>
+    <button type="button" class="calix-tab" id="tabSession" onclick="calixSwitchTab('session')">Session Log</button>
   </div>
 </header>
-<p class="calix-demonote">Onboarding client search / save uses Google Apps Script when deployed. Locally, search returns “new client” and submit simulates success.</p>
 
-<div id="session-panel" class="active">
+<div id="session-panel">
 {session_body}
 </div>
 
-<div id="onboard-panel">
+<div id="onboard-panel" class="active">
 {onboard_body}
 </div>
 
+{GAS_SCRIPTS}
 {STUB_JS}
 </body>
 </html>
