@@ -1,38 +1,48 @@
 /**
- * GitHub Pages / static host: call deployed Apps Script via fetch.
- * Exposes google.script.run so existing onboarding JS works unchanged.
+ * GitHub Pages: call Apps Script web app via GET (POST redirects drop the body).
  */
 (function () {
+  var MAX_GET_PAYLOAD = 6000;
+
   function gasUrl() {
     var u = window.CALIXLAB_GAS_EXEC_URL || '';
     if (!u || /YOUR_DEPLOYMENT_ID|PASTE_|REPLACE_/i.test(u)) return '';
     return u.replace(/\/$/, '');
   }
 
+  function parseResponse(res) {
+    if (!res.ok) throw new Error('Server returned ' + res.status);
+    return res.json().then(function (body) {
+      if (!body || body.ok === false) {
+        throw new Error((body && body.error) || 'Request failed');
+      }
+      return body.result;
+    });
+  }
+
   function callGas(action, payload) {
     var url = gasUrl();
     if (!url) {
       return Promise.reject(new Error(
-        'Backend not configured. Set CALIXLAB_GAS_EXEC_URL in config.js (Apps Script /exec URL).'
+        'Backend not configured. Set CALIXLAB_GAS_EXEC_URL in config.js.'
       ));
     }
-    return fetch(url, {
-      method: 'POST',
-      mode: 'cors',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: action, payload: payload == null ? {} : payload })
-    })
-      .then(function (res) {
-        if (!res.ok) throw new Error('Server returned ' + res.status);
-        return res.json();
-      })
-      .then(function (body) {
-        if (!body || body.ok === false) {
-          throw new Error((body && body.error) || 'Request failed');
-        }
-        return body.result;
-      });
+
+    if (action === 'lookupClient') {
+      var q = encodeURIComponent(String(payload == null ? '' : payload));
+      return fetch(url + '?action=lookupClient&q=' + q, { method: 'GET', mode: 'cors' })
+        .then(parseResponse);
+    }
+
+    var json = JSON.stringify(payload == null ? {} : payload);
+    if (json.length > MAX_GET_PAYLOAD) {
+      return Promise.reject(new Error(
+        'Form data is too large for this connection (receipt/signature). Try smaller images or contact support.'
+      ));
+    }
+    var u = url + '?action=' + encodeURIComponent(action) +
+      '&payload=' + encodeURIComponent(json);
+    return fetch(u, { method: 'GET', mode: 'cors' }).then(parseResponse);
   }
 
   function createRunner() {
@@ -75,5 +85,5 @@
     },
     configurable: true
   });
-  console.info('[Calixlab] Using Apps Script backend:', gasUrl());
+  console.info('[Calixlab] Apps Script backend (GET):', gasUrl());
 })();

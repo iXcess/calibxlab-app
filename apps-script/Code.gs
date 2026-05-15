@@ -18,11 +18,28 @@ function runApiAction_(action, payload) {
   throw new Error('Unknown action: ' + action);
 }
 
+function parseApiPayload_(action, p) {
+  if (action === 'lookupClient') {
+    return p.q != null ? p.q : (p.payload || '');
+  }
+  var raw = p.payload;
+  if (raw == null || raw === '') return {};
+  if (typeof raw === 'object') return raw;
+  try {
+    return JSON.parse(String(raw));
+  } catch (err) {
+    throw new Error('Invalid JSON payload');
+  }
+}
+
 function doGet(e) {
   var p = (e && e.parameter) || {};
   if (p.action) {
     try {
-      return jsonResponse_({ ok: true, result: runApiAction_(p.action, p.q != null ? p.q : p.payload) });
+      return jsonResponse_({
+        ok: true,
+        result: runApiAction_(p.action, parseApiPayload_(p.action, p))
+      });
     } catch (err) {
       return jsonResponse_({ ok: false, error: String(err.message || err) });
     }
