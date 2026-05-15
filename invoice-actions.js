@@ -175,8 +175,55 @@
     init();
   }
 
+  /**
+   * Inline invoice download on a success card (e.g. Payment Recorded).
+   */
+  function showInlineDownload(elementId, opts) {
+    var el = $(elementId);
+    if (!el || !opts.row || opts.row < 2) return;
+
+    state.pdfBase64 = null;
+    revokeBlob();
+    el.textContent = 'Preparing your invoice…';
+
+    if (!window.google || !google.script || !google.script.run) {
+      el.textContent = 'Invoice unavailable — backend not configured.';
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res || !res.pdfBase64) {
+          el.textContent = 'Invoice could not be generated. Redeploy Apps Script with Invoice.gs.';
+          return;
+        }
+        state.pdfBase64 = res.pdfBase64;
+        state.fileName = (res.invoiceNumber || 'invoice') + '.pdf';
+        var num = res.invoiceNumber || 'Invoice';
+        el.innerHTML = '';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'success-invoice-download';
+        btn.textContent = 'Download ' + num + ' (PDF)';
+        btn.addEventListener('click', function () {
+          downloadPdfToDevice(state.pdfBase64, state.fileName);
+          btn.textContent = 'Download again';
+        });
+        el.appendChild(btn);
+        var hint = document.createElement('span');
+        hint.className = 'success-invoice-hint';
+        hint.textContent = 'Tap to save the invoice on your phone.';
+        el.appendChild(hint);
+      })
+      .withFailureHandler(function (err) {
+        el.textContent = (err && err.message) || 'Invoice could not be generated.';
+      })
+      .generateInvoice(generatePayload(opts));
+  }
+
   global.CalixlabInvoiceModal = {
     showAfterSubmit: showAfterSubmit,
+    showInlineDownload: showInlineDownload,
     hide: hideModal,
     downloadPdfToDevice: downloadPdfToDevice
   };
