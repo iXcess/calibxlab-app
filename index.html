@@ -1704,31 +1704,31 @@ function onAcIn(){
     setLeadBox(null);
   } else { S.client=q; }
   if(q.length<2){ closeDrop(); sync(); return; }
-  const ql=q.toLowerCase();
-  acRes=[]; /* replaced below via sheet lookup */
-  void ql;
   acHi=-1;
   const dd=document.getElementById('aDrop');
-  if(!acRes.length){
-    dd.innerHTML=`<div class="aempty">No match — type full name and continue</div>`;
-  } else {
-    dd.innerHTML=acRes.map((c,i)=>{
-      const left=c.total-c.done;
-      const hl=c.name.replace(new RegExp(`(${esc(q)})`,'gi'),'<mark>$1</mark>');
-      const bc=left<=0?'ab-bad':left<=3?'ab-warn':'ab-ok';
-      const bt=left<=0?'⚠️ Package done':left<=3?`${left} left ⚠️`:`${left} left`;
-      const mult=c.lead==='Calixlab'?'0.6×':'0.7×';
-      return `<div class="aitem" data-i="${i}" onmousedown="pickClient(${i})">
-        <span>${hl}</span>
-        <div class="aitem-right">
-          <span class="alead-badge">${mult} ${c.lead}</span>
-          <span class="abadge ${bc}">${bt}</span>
-        </div>
-      </div>`;
-    }).join('');
-  }
+  dd.innerHTML='<div class="aempty">Searching clients…</div>';
   dd.classList.add('open');
-  sync();
+  clearTimeout(acTimer);
+  acTimer=setTimeout(function(){
+    if(acCache[q]){ acRes=acCache[q]; renderAcResults(q); return; }
+    if(!window.google || !google.script || !google.script.run){
+      dd.innerHTML='<div class="aempty">Backend not configured — check config.js</div>';
+      dd.classList.add('open');
+      return;
+    }
+    google.script.run
+      .withSuccessHandler(function(results){
+        acRes=(results||[]).map(mapSheetRowToSessionClient);
+        acCache[q]=acRes;
+        renderAcResults(q);
+      })
+      .withFailureHandler(function(err){
+        acRes=[];
+        dd.innerHTML='<div class="aempty">'+(err&&err.message?err.message:'Could not search clients')+'</div>';
+        dd.classList.add('open');
+      })
+      .lookupClient(q);
+  }, 300);
 }
 
 function onAcFocus(){
