@@ -217,6 +217,13 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 .btn-new { width: 100%; padding: 15px; background: #185FA5; border: none; border-radius: 16px; font-size: 15px; font-weight: 600; color: white; cursor: pointer; font-family: inherit; }
 .toast { position: fixed; bottom: 20px; left: 16px; right: 16px; background: #E24B4A; color: white; padding: 13px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; transform: translateY(100px); opacity: 0; transition: all .3s ease; z-index: 999; max-width: 528px; margin: 0 auto; }
 .toast.show { transform: translateY(0); opacity: 1; }
+.sl-ro {
+  width: 100%; padding: 13px 14px; border: 1.5px solid #B5D4F4; border-radius: 10px;
+  background: #f0f7ff; color: #0C447C; font-weight: 600; font-size: 16px;
+  min-height: 48px; display: flex; align-items: center; line-height: 1.35;
+}
+.sl-pkg-hint { margin-bottom: 12px; }
+#slPkgCard .section-title { margin-bottom: 14px; }
 .card:focus-within { border-color: #185FA5; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .card { animation: up .28s ease both; }
 .card:nth-child(1){animation-delay:.03s}
@@ -233,6 +240,7 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 SESSION_MOBILE_CSS = """
 @media (max-width: 480px) {
   .si-grid { grid-template-columns: 1fr 1fr; }
+  #slPkgCard .row2 { grid-template-columns: 1fr; }
   .prev-grid { grid-template-columns: 1fr; }
   .lead-auto { flex-direction: column; align-items: flex-start; gap: 12px; }
   .chips {

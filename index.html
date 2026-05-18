@@ -499,6 +499,13 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 .btn-new { width: 100%; padding: 15px; background: #185FA5; border: none; border-radius: 16px; font-size: 15px; font-weight: 600; color: white; cursor: pointer; font-family: inherit; }
 .toast { position: fixed; bottom: 20px; left: 16px; right: 16px; background: #E24B4A; color: white; padding: 13px 16px; border-radius: 10px; font-size: 14px; font-weight: 500; transform: translateY(100px); opacity: 0; transition: all .3s ease; z-index: 999; max-width: 528px; margin: 0 auto; }
 .toast.show { transform: translateY(0); opacity: 1; }
+.sl-ro {
+  width: 100%; padding: 13px 14px; border: 1.5px solid #B5D4F4; border-radius: 10px;
+  background: #f0f7ff; color: #0C447C; font-weight: 600; font-size: 16px;
+  min-height: 48px; display: flex; align-items: center; line-height: 1.35;
+}
+.sl-pkg-hint { margin-bottom: 12px; }
+#slPkgCard .section-title { margin-bottom: 14px; }
 .card:focus-within { border-color: #185FA5; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
 .card { animation: up .28s ease both; }
 .card:nth-child(1){animation-delay:.03s}
@@ -515,6 +522,7 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 
 @media (max-width: 480px) {
   .si-grid { grid-template-columns: 1fr 1fr; }
+  #slPkgCard .row2 { grid-template-columns: 1fr; }
   .prev-grid { grid-template-columns: 1fr; }
   .lead-auto { flex-direction: column; align-items: flex-start; gap: 12px; }
   .chips {
@@ -1551,7 +1559,7 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
         oninput="onAcIn()" onkeydown="onAcKey(event)" onfocus="onAcFocus()" />
       <div class="adrop" id="aDrop"></div>
     </div>
-    <p class="hint">Type 2+ letters to search the client sheet. Pick a name for package status and lead source.</p>
+    <p class="hint">Type 2+ letters to search the client sheet. Pick a name to load package details.</p>
     <div class="ferr" id="er2">Please enter a client name.</div>
 
     <!-- Session info panel -->
@@ -1580,27 +1588,46 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
     <div class="ferr" id="er3">Please select the session date.</div>
   </div>
 
-  <!-- 4 · Session Type -->
-  <div class="card" id="c4">
-    <div class="lbl">Session Type <span class="r">*</span></div>
-    <div class="chips">
-      <button class="chip" type="button" onclick="pickT('Group Class',this,'t-g')">🏃 Group</button>
-      <button class="chip" type="button" onclick="pickT('Semi-Private',this,'t-s')">👥 Semi-Private</button>
-      <button class="chip" type="button" onclick="pickT('Private',this,'t-p')">🎯 Private</button>
+  <!-- 4 · Trainer & Package (read-only from client record) -->
+  <div class="card" id="slPkgCard" style="display:none">
+    <div class="section-title amber">
+      <svg class="section-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29l-1.43-1.43z"/></svg>
+      Trainer &amp; Package
     </div>
-    <div class="ferr" id="er4">Please select session type.</div>
-  </div>
-
-  <!-- 5 · Lead Source — AUTO FILLED from client DB -->
-  <div class="card" id="c5">
-    <div class="lbl">Lead Source</div>
-    <div class="lead-auto" id="leadBox">
-      <span class="lead-empty">Select a client above — lead source will appear automatically</span>
+    <p class="hint sl-pkg-hint">🔒 From client record — filled automatically when you select a client.</p>
+    <div class="field">
+      <label>Assigned Trainer</label>
+      <div class="sl-ro" id="slRoTrainer">—</div>
     </div>
-    <p class="lead-locked hint" id="leadHint" style="display:none">
-      🔒 Set by admin in client database. Contact admin if incorrect.
-    </p>
-    <div class="ferr" id="er5">Lead source not found. Type client name exactly as registered.</div>
+    <div class="row2">
+      <div class="field">
+        <label>Start Date</label>
+        <div class="sl-ro" id="slRoStartDate">—</div>
+      </div>
+      <div class="field">
+        <label>Lead Type</label>
+        <div class="sl-ro" id="slRoLeadType">—</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Package Type</label>
+      <div class="sl-ro" id="slRoPackageType">—</div>
+    </div>
+    <div class="field">
+      <label>Number of Sessions</label>
+      <div class="sl-ro" id="slRoSessions">—</div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Rate / Session (RM)</label>
+        <div class="sl-ro" id="slRoRate">—</div>
+      </div>
+      <div class="field">
+        <label>Total Package Value (RM)</label>
+        <div class="sl-ro" id="slRoTotal">—</div>
+      </div>
+    </div>
+    <div class="ferr" id="er4">Select a client from the search results to load their package.</div>
   </div>
 
   <!-- 6 · Session Number -->
@@ -1644,8 +1671,8 @@ canvas#sigPad { display: block; width: 100%; height: 180px; touch-action: none; 
       <div class="pi"><div class="pk">Client</div><div class="pv" id="pv2">—</div></div>
       <div class="pi"><div class="pk">Date</div><div class="pv" id="pv3">—</div></div>
       <div class="pi"><div class="pk">Session #</div><div class="pv" id="pv4">—</div></div>
-      <div class="pi"><div class="pk">Type</div><div class="pv" id="pv5">—</div></div>
-      <div class="pi"><div class="pk">Lead</div><div class="pv" id="pv6">—</div></div>
+      <div class="pi"><div class="pk">Package</div><div class="pv" id="pv5">—</div></div>
+      <div class="pi"><div class="pk">Lead type</div><div class="pv" id="pv6">—</div></div>
     </div>
   </div>
 
@@ -1685,6 +1712,45 @@ function mapLeadForSession(leadType) {
   return 'Own';
 }
 
+function fmtDateRo(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('en-MY', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch (e) { return String(iso); }
+}
+function fmtRm(n) {
+  if (n == null || n === '' || isNaN(Number(n))) return '—';
+  return 'RM ' + Number(n).toFixed(2);
+}
+function sessionTypeFromPackage(packageType) {
+  const p = String(packageType || '').toLowerCase();
+  if (p.indexOf('1-2') >= 0 || p.indexOf('semi') >= 0) return 'Semi-Private';
+  if (p.indexOf('group') >= 0) return 'Group Class';
+  if (p.indexOf('1-1') >= 0 || p.indexOf('personal') >= 0) return 'Private';
+  return packageType ? String(packageType) : 'Private';
+}
+function fillClientPackageCard(c) {
+  const card = document.getElementById('slPkgCard');
+  if (!c) {
+    card.style.display = 'none';
+    S.type = '';
+    S.lead = '';
+    sync();
+    return;
+  }
+  card.style.display = 'block';
+  document.getElementById('slRoTrainer').textContent = c.trainerName || '—';
+  document.getElementById('slRoStartDate').textContent = fmtDateRo(c.startDate);
+  document.getElementById('slRoLeadType').textContent = c.leadLabel || c.leadType || '—';
+  document.getElementById('slRoPackageType').textContent = c.packageType || '—';
+  document.getElementById('slRoSessions').textContent = c.sessionsTotal != null ? String(c.sessionsTotal) : '—';
+  document.getElementById('slRoRate').textContent = fmtRm(c.ratePerSession);
+  document.getElementById('slRoTotal').textContent = fmtRm(c.totalValue);
+  S.lead = c.lead || mapLeadForSession(c.leadType);
+  S.type = sessionTypeFromPackage(c.packageType);
+  sync();
+}
+
 function mapSheetRowToSessionClient(r) {
   const total = parseInt(r.sessionsTotal, 10) || 0;
   const remaining = parseInt(r.sessionsRemaining, 10);
@@ -1696,6 +1762,13 @@ function mapSheetRowToSessionClient(r) {
     name: r.fullName || '',
     lead: mapLeadForSession(r.leadType),
     leadLabel: r.leadType || r.discoverySource || '',
+    leadType: r.leadType || '',
+    trainerName: r.trainerName || '',
+    packageType: r.packageType || '',
+    startDate: r.startDate || '',
+    ratePerSession: parseFloat(r.ratePerSession) || 0,
+    totalValue: parseFloat(r.totalValue) || 0,
+    sessionsTotal: total,
     pkg: pkg,
     done: done,
     total: total || 1,
@@ -1753,7 +1826,7 @@ function onAcIn(){
     S.clientData=null; S.client=q;
     document.getElementById('clientIn').classList.remove('filled');
     document.getElementById('siPanel').classList.remove('show');
-    setLeadBox(null);
+    fillClientPackageCard(null);
   } else { S.client=q; }
   if(q.length<2){ closeDrop(); sync(); return; }
   acHi=-1;
@@ -1806,7 +1879,7 @@ function pickClient(i){
   document.getElementById('cfmName').textContent=c.name;
   closeDrop();
   showSI(c);
-  setLeadBox(c);
+  fillClientPackageCard(c);
   sync(); clearErr();
 }
 
@@ -1838,38 +1911,7 @@ function showSI(c){
   document.getElementById('siPanel').classList.add('show');
 }
 
-// ── AUTO LEAD SOURCE ──────────────────────────────
-function setLeadBox(c){
-  const box=document.getElementById('leadBox');
-  const hint=document.getElementById('leadHint');
-  if(!c){
-    box.className='lead-auto';
-    box.innerHTML='<span class="lead-empty">Select a client above — lead source will appear automatically</span>';
-    hint.style.display='none';
-    S.lead='';
-    return;
-  }
-  const mult=c.lead==='Calixlab'?'0.6×':'0.7×';
-  const cls=c.lead==='Calixlab'?'set-calix':'set-own';
-  box.className=`lead-auto ${cls}`;
-  box.innerHTML=`
-    <div class="lead-left">
-      <span class="lead-mult">${mult}</span>
-      <span class="lead-name">${c.leadLabel || c.lead}</span>
-    </div>
-    <span class="lead-right">Auto-filled ✓</span>`;
-  hint.style.display='block';
-  S.lead=c.lead;
-  sync();
-}
-
 // ── OTHER FIELDS ──────────────────────────────────
-function pickT(v,el,cls){
-  S.type=v;
-  document.querySelectorAll('.chip').forEach(c=>c.className='chip');
-  el.classList.add(cls);
-  sync(); clearErr();
-}
 function adj(d){
   const inp=document.getElementById('sessNo');
   const v=Math.max(1,Math.min(999,(parseInt(inp.value)||1)+d));
@@ -1916,21 +1958,21 @@ function sync(){
   const t=document.getElementById('clientIn').value.trim();
   if(t) S.client=t;
   S.date=document.getElementById('sessDate').value;
-  const steps=[!!S.trainer,!!S.client,!!S.date,!!S.type,!!S.lead];
+  const steps=[!!S.trainer,!!(S.client && S.clientData),!!S.date,!!(S.no>=1)];
   const done=steps.filter(Boolean).length;
-  document.getElementById('pFill').style.width=(done/5*100)+'%';
-  document.getElementById('pFrac').textContent=done+' / 5';
-  const lbls=['Trainer','Client','Date','Session Type','Lead Source','✅ Ready to submit'];
-  document.getElementById('pStep').textContent=done<5?lbls[done]:lbls[5];
-  const any=S.trainer||S.client||S.type||S.lead;
+  document.getElementById('pFill').style.width=(done/4*100)+'%';
+  document.getElementById('pFrac').textContent=done+' / 4';
+  const lbls=['Trainer','Client','Date','Session #','✅ Ready to submit'];
+  document.getElementById('pStep').textContent=done<4?lbls[done]:lbls[4];
+  const any=S.trainer||S.client||S.clientData;
   document.getElementById('prevEl').classList.toggle('on',!!any);
   const fmt=d=>d?new Date(d+'T00:00:00').toLocaleDateString('en-MY',{day:'numeric',month:'short',year:'numeric'}):'—';
   document.getElementById('pv1').textContent=S.trainer||'—';
   document.getElementById('pv2').textContent=S.client||'—';
   document.getElementById('pv3').textContent=fmt(S.date);
   document.getElementById('pv4').textContent=S.no||'—';
-  document.getElementById('pv5').textContent=S.type||'—';
-  document.getElementById('pv6').textContent=S.lead?(S.lead+' ('+(S.lead==='Calixlab'?'0.6':'0.7')+'×)'):'—';
+  document.getElementById('pv5').textContent=(S.clientData&&S.clientData.packageType)||S.type||'—';
+  document.getElementById('pv6').textContent=(S.clientData&&(S.clientData.leadLabel||S.clientData.leadType))?(S.clientData.leadLabel||S.clientData.leadType)+' ('+(S.lead==='Calixlab'?'0.6':'0.7')+'×)':'—';
 }
 
 // ── ERRORS ────────────────────────────────────────
@@ -1947,7 +1989,7 @@ function showSessionSuccess(ts, fmt, mult) {
   document.getElementById('successScr').classList.add('on');
   const rows=[['Timestamp',ts],['Trainer',S.trainer],['Client',S.client],
     ['Date',fmt(S.date)],['Session #',S.no],['Type',S.type],
-    ['Lead',S.lead+' ('+mult+'×)'],['Confirmed','✅ Client signed']];
+    ['Lead',((S.clientData&&(S.clientData.leadLabel||S.clientData.leadType))||S.lead)+' ('+mult+'×)'],['Confirmed','✅ Client signed']];
   document.getElementById('sSumm').innerHTML=rows.map(([k,v])=>
     `<div class="s-row"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('');
   const now=new Date();
@@ -1965,8 +2007,7 @@ function doSubmit(){
   if(!S.trainer){showE('er1','c1');ok=false;}
   if(!S.client) {showE('er2','c2');ok=false;}
   if(!S.date)   {showE('er3','c3');ok=false;}
-  if(!S.type)   {showE('er4','c4');ok=false;}
-  if(!S.lead)   {showE('er5','c5');ok=false;}
+  if(S.client && !S.clientData){document.getElementById('slPkgCard').style.display='block';showE('er4','slPkgCard');ok=false;}
   if(!S.no||S.no<1){showE('er6','c6');ok=false;}
   if(!S.signed||!S.confirmed){document.getElementById('er7').style.display='block';ok=false;}
   if(!ok){toast('⚠️ Please complete all required fields');window.scrollTo({top:0,behavior:'smooth'});return;}
@@ -1993,7 +2034,7 @@ function doSubmit(){
       trainer:S.trainer,
       client:S.client,
       sessionType:S.type,
-      leadSource:S.lead,
+      leadSource:S.clientData?(S.clientData.leadLabel||S.clientData.leadType||S.lead):S.lead,
       leadMultiplier:mult,
       sessionNumber:S.no,
       clientConfirmed:true,

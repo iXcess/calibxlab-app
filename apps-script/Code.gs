@@ -520,8 +520,12 @@ function rowToClient_(row, rowIndex) {
     emergencyContact: row[5] || '',
     emergencyPhone: row[6] || '',
     trainerName: row[7] || '',
+    startDate: row[8] instanceof Date
+      ? Utilities.formatDate(row[8], Session.getScriptTimeZone(), 'yyyy-MM-dd')
+      : String(row[8] || ''),
     packageType: row[12] || '',
     sessionsTotal: sessions,
+    ratePerSession: parseFloat(row[14]) || 0,
     leadType: row[16] || '',
     discoverySource: row[24] || '',
     amountPaid: amountPaid,
