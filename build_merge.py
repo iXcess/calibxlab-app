@@ -203,7 +203,12 @@ canvas { display: block; width: 100%; height: 130px; touch-action: none; cursor:
 .sub-note { text-align: center; font-size: 12px; color: #999; margin-top: 10px; }
 .success { display: none; padding: 20px 16px 60px; text-align: center; max-width: 560px; margin: 0 auto; }
 .success.on { display: block; }
-.s-ring { width: 88px; height: 88px; border-radius: 50%; background: transparent; border: 2px solid #B5D4F4; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; padding: 8px; }
+.s-ring {
+  width: 88px; height: 88px; border-radius: 50%; background: transparent; border: 2px solid #B5D4F4;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; padding: 8px;
+  overflow: hidden; flex-shrink: 0;
+}
+.s-ring img { width: 100%; height: 100%; max-width: 72px; max-height: 72px; object-fit: contain; display: block; }
 .s-title { font-size: 22px; font-weight: 700; color: #0C447C; margin-bottom: 8px; }
 .s-sub { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 20px; }
 .s-summ { background: white; border: 1px solid #e8e8e8; border-radius: 16px; padding: 18px; text-align: left; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
